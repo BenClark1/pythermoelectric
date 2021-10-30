@@ -116,7 +116,9 @@ def calculate_trendline(x_vals, y_vals):
     print("Trendline intercept: %f" % (trend_intercept))   
     print("Correlation coefficient: %f" % (correlation)) 
 
-    return {'slope':trend_slope, 'intercept':trend_intercept, 'trendline':trend_y_vals}
+    return {'slope':trend_slope, 
+            'intercept':trend_intercept, 
+            'trendline':trend_y_vals}
 
 
 # calculate_trendline(test_x_vals, test_y_vals)
