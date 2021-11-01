@@ -43,6 +43,9 @@ def calculate_trendline(x_vals, y_vals):
     #     print(x_vals[ind], end='')
     #     print('\t', end='')
     #     print(y_vals[ind])
+    if len(x_vals) != len(y_vals):
+        print("Trendline failed: lists must have equal length")
+        return None
     
     mean_x = sum(x_vals) / len(x_vals)
     mean_y = sum(y_vals) / len(y_vals)
@@ -199,7 +202,10 @@ delta_V12 = [temp_to_voltage(temp, T_ref_C) for temp in Tcolds_C]
 round_and_print("Voltage across hot thermocouple: ", delta_V34, 7)
 round_and_print("Voltage across cold thermocouple: ", delta_V12, 7)
 
-# introduce simulated voltage offsets here
+# introduce simulated voltage offsets
+mV_offset = [0, 0.01, 0.02, 0.03]
+delta_V34 = [volt + mV_offset[1] for volt in delta_V34]
+delta_V12 = [volt + mV_offset[1] for volt in delta_V12]
 
 # use polynomials to return to temperatures
 new_Thots_C = [voltage_to_temp(volt, T_ref_C) for volt in delta_V34]
@@ -214,6 +220,9 @@ S_Cu = round(Seebeck_Cu(T_ref_K), 3) # units: uV/K
 
 true_deltaV = [-1*(get_s_coeff(T_ref_K) - S_Cu)*delta_T for delta_T in new_dT]
 # note: true_deltaV is in uV
+# introduce voltage offset for true_deltaV
+uV_offset = [0,1,5,10,20,50]
+true_deltaV = [volt + uV_offset[5] for volt in true_deltaV]
 # get a dictionary with slope, intercept, and trendline y values
 trend_info = calculate_trendline(new_dT, true_deltaV)
 
@@ -226,7 +235,8 @@ plt.show()
 
 S_sample = -1*trend_info['slope'] + S_Cu
 print("\nFinal Seebeck Coefficient of the Sample: ")
-print(round(S_sample, 7))
+# print(round(S_sample, 9))
+print(S_sample)
 
 print("\nDifferences between original and new temps: ")
 print("hot: ")
