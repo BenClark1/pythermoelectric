@@ -218,7 +218,7 @@ true_deltaV = [-1*(get_s_coeff(T_ref_K) - S_Cu)*delta_T for delta_T in new_dT]
 trend_info = calculate_trendline(new_dT, true_deltaV)
 
 
-plt.plot(new_dT, true_deltaV, 'ro', new_dT, trend_info['trendline'], 'b')
+plt.plot(new_dT, true_deltaV, 'r.', new_dT, trend_info['trendline'], 'b')
 plt.title('Thermoelectric Votlage Produced by Seebeck Effect in Bi₂Te₃₊ₓ')
 plt.xlabel('Temperature Difference (K)')
 plt.ylabel('Thermoelectric Voltage (uV)')
