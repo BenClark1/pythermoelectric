@@ -203,9 +203,9 @@ round_and_print("Voltage across hot thermocouple: ", delta_V34, 7)
 round_and_print("Voltage across cold thermocouple: ", delta_V12, 7)
 
 # introduce simulated voltage offsets
-mV_offset = [0, 0.01, 0.02, 0.03]
-delta_V34 = [volt + mV_offset[1] for volt in delta_V34]
-delta_V12 = [volt + mV_offset[1] for volt in delta_V12]
+mv_offset1 = [0, 0.01, 0.02, 0.03]
+delta_V34 = [volt + mv_offset1[0] for volt in delta_V34]
+delta_V12 = [volt + mv_offset1[0] for volt in delta_V12]
 
 # use polynomials to return to temperatures
 new_Thots_C = [voltage_to_temp(volt, T_ref_C) for volt in delta_V34]
@@ -221,8 +221,8 @@ S_Cu = round(Seebeck_Cu(T_ref_K), 3) # units: uV/K
 true_deltaV = [-1*(get_s_coeff(T_ref_K) - S_Cu)*delta_T for delta_T in new_dT]
 # note: true_deltaV is in uV
 # introduce voltage offset for true_deltaV
-uV_offset = [0,1,5,10,20,50]
-true_deltaV = [volt + uV_offset[5] for volt in true_deltaV]
+uV_offset2 = [0,1,5,10,20,50]
+true_deltaV = [volt + uV_offset2[0] for volt in true_deltaV]
 # get a dictionary with slope, intercept, and trendline y values
 trend_info = calculate_trendline(new_dT, true_deltaV)
 
