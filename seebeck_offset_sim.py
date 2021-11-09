@@ -117,9 +117,9 @@ Thots_C = [kelvin_to_celsius((delta_T/dx)*x_hot + T_ref_K) for delta_T in dT]
 Tcolds_C = [kelvin_to_celsius((delta_T/dx)*x_cold + T_ref_K) for delta_T in dT] 
 T_ref_C = kelvin_to_celsius(T_ref_K) # reference temperature in celsius
 
-offs1 = [-50,-20,-10,-5,-2,-1,-0.5,-0.2,-0.1,-0.05,-0.02,-0.01,
+offs1 = [-50,-20,-10,-5,-2,-1,-0.5,-0.2,-0.1,-0.05,-0.02,-0.01, # create offsets in mV
          0, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50]
-offs2 = offs1 # create offsets in mV
+offs2 = offs1 
 offs3 = offs1
 offs4 = offs1
 ind_zero = len(offs1)//2 # get index of zero offset (center of list) 
@@ -173,7 +173,9 @@ c_pos = [0.0,
 -7.293422e-7]
 c = [c_neg, c_pos] # c[1] gives positive polynomial, c[0] gives negative
 
-def seebeck_measurement(Thots_C, Tcolds_C, offs):
+def seebeck_measurement(Thots_C, Tcolds_C, offs, plot=False):
+    # offs: a list of offsets, first term must be zero
+        # index corresponds to offset location 
     # use conversion polynomials to get delta V values
     delta_V12_true = [temp_to_voltage(temp, T_ref_C) for temp in Thots_C]
     delta_V34_true = [temp_to_voltage(temp, T_ref_C) for temp in Tcolds_C]
@@ -193,24 +195,24 @@ def seebeck_measurement(Thots_C, Tcolds_C, offs):
     
     S_Cu = round(Seebeck_Cu(T_ref_K), 3) # units: uV/K
     # S_Con = # Seebeck coefficient of constantan: uV/K
-    # deltaV_seebecks = [-1*S_nist * delta_T for delta_T in new_dT] #not caclulated
     
     true_deltaV13 = [-1*(get_s_coeff(T_ref_K) - S_Cu)*delta_T for delta_T in new_dT]
     # true_deltaV24 = [-1*(get_s_coeff(T_ref_K) - S_Con)*delta_T for delta_T in new_dT]
     # note: true_deltaV is in uV
     # introduce voltage offset for true_deltaV lists
     meas_deltaV13 = [volt + offs[1] + offs[3] for volt in true_deltaV13]
-    # meas_deltaV24 = [volt + offs2[20] + offs4[20] for volt in true_deltaV24]
+    # meas_deltaV24 = [volt + offs[2] + offs[4] for volt in true_deltaV24]
     
     # get a dictionary with slope, intercept, and trendline y values
     trend_info = calculate_trendline(new_dT, meas_deltaV13)
     
-    plt.plot(new_dT, true_deltaV13, 'r.', new_dT, trend_info['trendline'], 'b')
-    plt.title('Thermoelectric Votlage Produced by Seebeck Effect in Bi₂Te₃₊ₓ', pad=20)
-    plt.xlabel('Temperature Difference (K)')
-    plt.ylabel('Thermoelectric Voltage (uV)')
-    plt.show()
-    
+    if plot:
+        plt.plot(new_dT, meas_deltaV13, 'r.', new_dT, trend_info['trendline'], 'b')
+        plt.title('Thermoelectric Votlage Produced by Seebeck Effect in Bi₂Te₃₊ₓ', pad=20)
+        plt.xlabel('Temperature Difference (K)')
+        plt.ylabel('Thermoelectric Voltage (uV)')
+        plt.show()
+        
     S_sample = -1*trend_info['slope'] + S_Cu
     # print("\nFinal Seebeck Coefficient of the Sample: ")
     # print(round(S_sample, 9))
@@ -223,8 +225,85 @@ def seebeck_measurement(Thots_C, Tcolds_C, offs):
 
     return S_sample
 
-offsets = [0, offs1[24], offs2[24], offs3[20], offs4[20]]
-print(seebeck_measurement(Thots_C, Tcolds_C, offsets))
+offs_inputs = [0, 0, 0, 0, 0]
+print(seebeck_measurement(Thots_C, Tcolds_C, offs_inputs))
+
+nist_seebeck_coeff = get_s_coeff(T_ref_K)
+control = []
+
+# hold offsets 3 and 4 constant while varying 1 and 2
+for ind in range(len(offs2)):
+    s_coeffs = []
+    offs_inputs[2] = offs2[ind]
+    for offset1 in offs1:
+        offs_inputs[1] = offset1
+        s_coeffs.append(seebeck_measurement(Thots_C, Tcolds_C, offs_inputs))
+    
+    plt.plot(offs1, s_coeffs, color=(ind/len(offs2),
+                                     ind*0.5/len(offs2),
+                                     ind*0.1/len(offs2)))
+    control.append(nist_seebeck_coeff)
+
+plt.plot(offs1, control, 'r')
+plt.title('Variation in Seebeck Coefficient due to Offsets in the Hot Thermocouple', pad=20)
+plt.xlabel('')
+plt.ylabel('')
+# plt.autoscale(enable=False, axis='y')
+plt.show()
+
+
+
+# hold offsets 1 and 2 constant while varying 3 and 4
+offs_inputs = [0, 0, 0, 0, 0]
+for ind in range(len(offs4)):
+    s_coeffs = []
+    offs_inputs[4] = offs4[ind]
+    for offset3 in offs3:
+        offs_inputs[3] = offset3
+        s_coeffs.append(seebeck_measurement(Thots_C, Tcolds_C, offs_inputs))
+    
+    plt.plot(offs3, s_coeffs, color=(ind/len(offs4),
+                                     ind*0.5/len(offs4),
+                                     ind*0.1/len(offs4)))
+plt.plot(offs1, control, 'r')
+plt.title('Variation in Seebeck Coefficient due to Offsets in the Cold Thermocouple', pad=20)
+plt.xlabel('')
+plt.ylabel('')
+# plt.autoscale(enable=False, axis='y')
+plt.show()
+
+
+
+# hold offsets 2 and 4 constant while varying 1 and 3
+offs_inputs = [0, 0, 0, 0, 0]
+for ind in range(len(offs3)):
+    s_coeffs = []
+    offs_inputs[3] = offs3[ind]
+    for offset1 in offs1:
+        offs_inputs[1] = offset1
+        s_coeffs.append(seebeck_measurement(Thots_C, Tcolds_C, offs_inputs))
+    
+    plt.plot(offs1, s_coeffs, color=(ind/len(offs3),
+                                     ind*0.5/len(offs3),
+                                     ind*0.1/len(offs3)))
+plt.plot(offs1, control, 'r')
+plt.title('Variation in Seebeck Coefficient due to Voltgae Offsets', pad=20)
+plt.xlabel('')
+plt.ylabel('')
+# plt.autoscale(enable=False, axis='y')
+plt.show()
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
