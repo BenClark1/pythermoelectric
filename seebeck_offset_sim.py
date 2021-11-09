@@ -117,8 +117,8 @@ Thots_C = [kelvin_to_celsius((delta_T/dx)*x_hot + T_ref_K) for delta_T in dT]
 Tcolds_C = [kelvin_to_celsius((delta_T/dx)*x_cold + T_ref_K) for delta_T in dT] 
 T_ref_C = kelvin_to_celsius(T_ref_K) # reference temperature in celsius
 
-offs1 = [-500,-200,-100,-50,-20,-10,-5,-2,-1,-0.5,-0.2,-0.1,-0.05,-0.02,-0.01,
-         0, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, 100, 200, 500]
+offs1 = [-50,-20,-10,-5,-2,-1,-0.5,-0.2,-0.1,-0.05,-0.02,-0.01,
+         0, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50]
 offs2 = offs1 # create offsets in mV
 offs3 = offs1
 offs4 = offs1
@@ -176,7 +176,7 @@ c = [c_neg, c_pos] # c[1] gives positive polynomial, c[0] gives negative
 delta_V12_true = [temp_to_voltage(temp, T_ref_C) for temp in Thots_C]
 delta_V34_true = [temp_to_voltage(temp, T_ref_C) for temp in Tcolds_C]
 # add simulated voltage offsets
-delta_V12_meas = [volt + offs1[30] + offs2[30] for volt in delta_V12_true]
+delta_V12_meas = [volt + offs1[24] + offs2[24] for volt in delta_V12_true]
 delta_V34_meas = [volt + offs3[20] + offs4[20] for volt in delta_V34_true]
 round_and_print("Voltage across hot thermocouple: ", delta_V12_true, 7)
 round_and_print("Voltage across cold thermocouple: ", delta_V34_true, 7)
@@ -197,14 +197,14 @@ true_deltaV13 = [-1*(get_s_coeff(T_ref_K) - S_Cu)*delta_T for delta_T in new_dT]
 # true_deltaV24 = [-1*(get_s_coeff(T_ref_K) - S_Con)*delta_T for delta_T in new_dT]
 # note: true_deltaV is in uV
 # introduce voltage offset for true_deltaV lists
-meas_deltaV13 = [volt + offs1[30] + offs3[30] for volt in true_deltaV13]
+meas_deltaV13 = [volt + offs1[24] + offs3[24] for volt in true_deltaV13]
 # meas_deltaV24 = [volt + offs2[20] + offs4[20] for volt in true_deltaV24]
 
 # get a dictionary with slope, intercept, and trendline y values
 trend_info = calculate_trendline(new_dT, true_deltaV13)
 
 plt.plot(new_dT, true_deltaV13, 'r.', new_dT, trend_info['trendline'], 'b')
-plt.title('Thermoelectric Votlage Produced by Seebeck Effect in Bi₂Te₃₊ₓ')
+plt.title('Thermoelectric Votlage Produced by Seebeck Effect in Bi₂Te₃₊ₓ', pad=20)
 plt.xlabel('Temperature Difference (K)')
 plt.ylabel('Thermoelectric Voltage (uV)')
 plt.show()
