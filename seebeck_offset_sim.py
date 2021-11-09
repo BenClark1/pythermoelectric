@@ -33,17 +33,13 @@ def round_and_print(message, list_in, digits):
     print(message)
     list_to_print = [round(item, digits) for item in list_in]
     print(list_to_print)
-    print('') # to get a new line
+    print('')
     
 def kelvin_to_celsius(kelv_in):
     return kelv_in - 273.15
 
 def calculate_trendline(x_vals, y_vals):
-    # for ind in range(len(x_vals)):
-    #     # current_ind = x_vals.index(uvolt)
-    #     print(x_vals[ind], end='')
-    #     print('\t', end='')
-    #     print(y_vals[ind])
+
     if len(x_vals) != len(y_vals):
         print("Trendline failed: lists must have equal length")
         return None
@@ -67,13 +63,6 @@ def calculate_trendline(x_vals, y_vals):
     trend_slope = correlation * (sdev_y/sdev_x)
     trend_intercept = mean_y - (trend_slope * mean_x)
     trend_y_vals = [trend_slope*xval + trend_intercept for xval in x_vals]
-    
-    # print("------")
-    # print("Calculated trendline: ")
-    # for ind in range(len(x_vals)):
-    #     print(x_vals[ind], end='')
-    #     print('\t', end='')
-    #     print(trend_y_vals[ind])
         
     print("\nTrendline slope: %f" % (trend_slope))
     print("Trendline intercept: %f" % (trend_intercept))   
@@ -93,9 +82,9 @@ def Seebeck_Cu(T):
 def get_s_coeff(T):
 # NIST provided Seebeck coefficients for Bi2Te3+x
 # T must be in kelvin: Seebeck coeff [uV/K]
-    A = 295 #central temp (room temp) K    
+    A = 295 # entral temp (room temp) K    
     S_A = -230.03 # µV/K
-    a = -2.2040e-1 #coefficients
+    a = -2.2040e-1 # coefficients
     b = 3.9706e-3
     c = 7.2922e-6 
     d = -1.0864e-9     
@@ -108,41 +97,33 @@ def get_s_coeff(T):
 
 # main script ---------------------------------------
 
-# dQ/dt = P = kA(dT/dx)
-# power delivered to the sample
-# powers = [0.5, 0.8, 1, 2, 5, 10, 20]  
+# dQ/dt = P = kA(dT/dx) = power delivered to the sample
 powers = [0, 1e-3, 2e-3, 3e-3, 4e-3, 5e-3, \
-          6e-3, 7e-3, 8e-3, 9e-3, 10e-3] # units: W NEED 100 values here
+          6e-3, 7e-3, 8e-3, 9e-3, 10e-3] # units: W eventually test 100 values here
 round_and_print("Input power values: ", powers, 7)
-# thermal conductivity kappa for Bi2Te3
-kappa = 2.0 # units: W/(m*K)
-# 2mm x 2mm cross sectional area 
-area = 0.002**2 # units: m^2
+kappa = 2.0 # units: W/(m*K)  thermal conductivity kappa for Bi2Te3
+area = 0.002**2 # units: m^2  2mm x 2mm cross sectional area 
 # location of hot and cold thermocoulpe probe points
 x_cold = 0.001667 # 1.67mm, or sample length / 3
-# length difference between each thermocouple probe point
-dx = 0.001667 # 1.67mm
+dx = 0.001667 # 1.67mm  length difference between each thermocouple probe point
 x_hot = x_cold + dx # 2*1.67mm
 # difference in temperature between each thermocouple (delta T)
 dT = [(pwr * dx)/(kappa * area) for pwr in powers] #units: K
-# derivative of T with respect to x is dT/dx (slope)
-# T(x) = (dT/dx)x + T_ref_K
+# derivative of T with respect to x is dT/dx (slope)  T(x) = (dT/dx)x + T_ref_K
 # reference temperature at the base of the sample
 T_ref_K = 80 # units: K
 # get hot and cold temperatures and convert to celsius
 Thots_C = [kelvin_to_celsius((delta_T/dx)*x_hot + T_ref_K) for delta_T in dT]
 Tcolds_C = [kelvin_to_celsius((delta_T/dx)*x_cold + T_ref_K) for delta_T in dT] 
 T_ref_C = kelvin_to_celsius(T_ref_K) # reference temperature in celsius
-# create offsets in mV
+
 offs1 = [-500,-200,-100,-50,-20,-10,-5,-2,-1,-0.5,-0.2,-0.1,-0.05,-0.02,-0.01,
          0, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, 100, 200, 500]
-offs2 = offs1
+offs2 = offs1 # create offsets in mV
 offs3 = offs1
 offs4 = offs1
 ind_zero = len(offs1)//2 # get index of zero offset (center of list) 
 
-
-# round_and_print("Initial temperature differences: ", dT, 7)
 round_and_print("Initial hot temperatures (Thot C): ", Thots_C, 7)
 round_and_print("Initial cold temperatures(Tcold C): ", Tcolds_C, 7)
 
@@ -195,15 +176,10 @@ c = [c_neg, c_pos] # c[1] gives positive polynomial, c[0] gives negative
 delta_V12_true = [temp_to_voltage(temp, T_ref_C) for temp in Thots_C]
 delta_V34_true = [temp_to_voltage(temp, T_ref_C) for temp in Tcolds_C]
 # add simulated voltage offsets
-delta_V12_meas = [volt + offs1[25] + offs2[25] for volt in delta_V12_true]
-delta_V34_meas = [volt + offs3[6] + offs4[6] for volt in delta_V34_true]
+delta_V12_meas = [volt + offs1[30] + offs2[30] for volt in delta_V12_true]
+delta_V34_meas = [volt + offs3[20] + offs4[20] for volt in delta_V34_true]
 round_and_print("Voltage across hot thermocouple: ", delta_V12_true, 7)
 round_and_print("Voltage across cold thermocouple: ", delta_V34_true, 7)
-
-# introduce simulated voltage offsets
-# mv_offset1 = [0, 0.01, 0.02, 0.03]
-# delta_V34 = [volt + mv_offset1[0] for volt in delta_V34]
-# delta_V12 = [volt + mv_offset1[0] for volt in delta_V12]
 
 # use polynomials to return to temperatures
 new_Thots_C = [voltage_to_temp(volt, T_ref_C) for volt in delta_V12_meas]
@@ -214,16 +190,15 @@ round_and_print("New cold temperatures(C): ", new_Tcolds_C, 7)
 new_dT = [new_Thots_C[ind]-new_Tcolds_C[ind] for ind in range(len(new_Thots_C))]
 
 S_Cu = round(Seebeck_Cu(T_ref_K), 3) # units: uV/K
+# S_Con = # Seebeck coefficient of constantan: uV/K
 # deltaV_seebecks = [-1*S_nist * delta_T for delta_T in new_dT] #not caclulated
 
 true_deltaV13 = [-1*(get_s_coeff(T_ref_K) - S_Cu)*delta_T for delta_T in new_dT]
-true_deltaV24 = [-1*(get_s_coeff(T_ref_K))*delta_T for delta_T in new_dT]
+# true_deltaV24 = [-1*(get_s_coeff(T_ref_K) - S_Con)*delta_T for delta_T in new_dT]
 # note: true_deltaV is in uV
 # introduce voltage offset for true_deltaV lists
-# uV_offset2 = [0,1,5,10,20,50]
-# true_deltaV13 = [volt + uV_offset2[0] for volt in true_deltaV13]
-meas_deltaV13 = [volt + offs1[25] + offs3[25] for volt in true_deltaV13]
-meas_deltaV24 = [volt + offs2[6] + offs4[6] for volt in true_deltaV24]
+meas_deltaV13 = [volt + offs1[30] + offs3[30] for volt in true_deltaV13]
+# meas_deltaV24 = [volt + offs2[20] + offs4[20] for volt in true_deltaV24]
 
 # get a dictionary with slope, intercept, and trendline y values
 trend_info = calculate_trendline(new_dT, true_deltaV13)
