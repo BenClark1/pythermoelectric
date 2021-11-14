@@ -94,6 +94,57 @@ def get_s_coeff(T):
     term4 = d*T**4*(1-(A/T))**4
     return S_A + term1 + term2 + term3 + term4
     
+def seebeck_measurement(Thots_C, Tcolds_C, offs, plot=False):
+    # offs: a list of offsets, first term must be zero
+        # index corresponds to offset location 
+    # use conversion polynomials to get delta V values
+    delta_V12_true = [temp_to_voltage(temp, T_ref_C) for temp in Thots_C]
+    delta_V34_true = [temp_to_voltage(temp, T_ref_C) for temp in Tcolds_C]
+    # add simulated voltage offsets
+    delta_V12_meas = [volt + offs[1] + offs[2] for volt in delta_V12_true]
+    delta_V34_meas = [volt + offs[3] + offs[4] for volt in delta_V34_true]
+    round_and_print("Voltage across hot thermocouple: ", delta_V12_true, 7)
+    round_and_print("Voltage across cold thermocouple: ", delta_V34_true, 7)
+    
+    # use polynomials to return to temperatures
+    new_Thots_C = [voltage_to_temp(volt, T_ref_C) for volt in delta_V12_meas]
+    new_Tcolds_C = [voltage_to_temp(volt, T_ref_C) for volt in delta_V34_meas]
+    round_and_print("New hot temperatures (C): ", new_Thots_C, 7)
+    round_and_print("New cold temperatures(C): ", new_Tcolds_C, 7)
+    # new_dT is the same in both Kelvin and Celsius
+    new_dT = [new_Thots_C[ind]-new_Tcolds_C[ind] for ind in range(len(new_Thots_C))]
+    
+    S_Cu = round(Seebeck_Cu(T_ref_K), 3) # units: uV/K
+    # S_Con = # Seebeck coefficient of constantan: uV/K
+    
+    true_deltaV13 = [-1*(get_s_coeff(T_ref_K) - S_Cu)*delta_T for delta_T in dT]
+    # true_deltaV24 = [-1*(get_s_coeff(T_ref_K) - S_Con)*delta_T for delta_T in new_dT]
+    # note: true_deltaV is in uV
+    # introduce voltage offset for true_deltaV lists
+    meas_deltaV13 = [volt + offs[1] + offs[3] for volt in true_deltaV13]
+    # meas_deltaV24 = [volt + offs[2] + offs[4] for volt in true_deltaV24]
+    
+    # get a dictionary with slope, intercept, and trendline y values
+    trend_info = calculate_trendline(new_dT, meas_deltaV13)
+    
+    if plot:
+        plt.plot(new_dT, meas_deltaV13, 'r.', new_dT, trend_info['trendline'], 'b')
+        plt.title('Thermoelectric Votlage Produced by Seebeck Effect in Bi₂Te₃₊ₓ', pad=20)
+        plt.xlabel('Temperature Difference (K)')
+        plt.ylabel('Thermoelectric Voltage (uV)')
+        plt.show()
+        
+    S_sample = -1*trend_info['slope'] + S_Cu
+    # print("\nFinal Seebeck Coefficient of the Sample: ")
+    # print(round(S_sample, 9))
+    
+    # print("\nDifferences between original and new temps (C): ")
+    # print("hot: ")
+    # print([Thots_C[i]-new_Thots_C[i] for i in range(len(new_Thots_C))])
+    # print("cold: ")
+    # print([Tcolds_C[i]-new_Tcolds_C[i] for i in range(len(new_Tcolds_C))])
+
+    return S_sample
 
 # main script ---------------------------------------
 
@@ -173,57 +224,7 @@ c_pos = [0.0,
 -7.293422e-7]
 c = [c_neg, c_pos] # c[1] gives positive polynomial, c[0] gives negative
 
-def seebeck_measurement(Thots_C, Tcolds_C, offs, plot=False):
-    # offs: a list of offsets, first term must be zero
-        # index corresponds to offset location 
-    # use conversion polynomials to get delta V values
-    delta_V12_true = [temp_to_voltage(temp, T_ref_C) for temp in Thots_C]
-    delta_V34_true = [temp_to_voltage(temp, T_ref_C) for temp in Tcolds_C]
-    # add simulated voltage offsets
-    delta_V12_meas = [volt + offs[1] + offs[2] for volt in delta_V12_true]
-    delta_V34_meas = [volt + offs[3] + offs[4] for volt in delta_V34_true]
-    round_and_print("Voltage across hot thermocouple: ", delta_V12_true, 7)
-    round_and_print("Voltage across cold thermocouple: ", delta_V34_true, 7)
-    
-    # use polynomials to return to temperatures
-    new_Thots_C = [voltage_to_temp(volt, T_ref_C) for volt in delta_V12_meas]
-    new_Tcolds_C = [voltage_to_temp(volt, T_ref_C) for volt in delta_V34_meas]
-    round_and_print("New hot temperatures (C): ", new_Thots_C, 7)
-    round_and_print("New cold temperatures(C): ", new_Tcolds_C, 7)
-    # new_dT is the same in both Kelvin and Celsius
-    new_dT = [new_Thots_C[ind]-new_Tcolds_C[ind] for ind in range(len(new_Thots_C))]
-    
-    S_Cu = round(Seebeck_Cu(T_ref_K), 3) # units: uV/K
-    # S_Con = # Seebeck coefficient of constantan: uV/K
-    
-    true_deltaV13 = [-1*(get_s_coeff(T_ref_K) - S_Cu)*delta_T for delta_T in new_dT]
-    # true_deltaV24 = [-1*(get_s_coeff(T_ref_K) - S_Con)*delta_T for delta_T in new_dT]
-    # note: true_deltaV is in uV
-    # introduce voltage offset for true_deltaV lists
-    meas_deltaV13 = [volt + offs[1] + offs[3] for volt in true_deltaV13]
-    # meas_deltaV24 = [volt + offs[2] + offs[4] for volt in true_deltaV24]
-    
-    # get a dictionary with slope, intercept, and trendline y values
-    trend_info = calculate_trendline(new_dT, meas_deltaV13)
-    
-    if plot:
-        plt.plot(new_dT, meas_deltaV13, 'r.', new_dT, trend_info['trendline'], 'b')
-        plt.title('Thermoelectric Votlage Produced by Seebeck Effect in Bi₂Te₃₊ₓ', pad=20)
-        plt.xlabel('Temperature Difference (K)')
-        plt.ylabel('Thermoelectric Voltage (uV)')
-        plt.show()
-        
-    S_sample = -1*trend_info['slope'] + S_Cu
-    # print("\nFinal Seebeck Coefficient of the Sample: ")
-    # print(round(S_sample, 9))
-    
-    # print("\nDifferences between original and new temps (C): ")
-    # print("hot: ")
-    # print([Thots_C[i]-new_Thots_C[i] for i in range(len(new_Thots_C))])
-    # print("cold: ")
-    # print([Tcolds_C[i]-new_Tcolds_C[i] for i in range(len(new_Tcolds_C))])
 
-    return S_sample
 
 offs_inputs = [0, 0, 0, 0, 0]
 print(seebeck_measurement(Thots_C, Tcolds_C, offs_inputs))
