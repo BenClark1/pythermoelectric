@@ -175,8 +175,10 @@ Thots_C = [kelvin_to_celsius((delta_T/dx)*x_hot + T_ref_K) for delta_T in dT_tru
 Tcolds_C = [kelvin_to_celsius((delta_T/dx)*x_cold + T_ref_K) for delta_T in dT_true] 
 T_ref_C = kelvin_to_celsius(T_ref_K) # reference temperature in celsius
 # create offsets in uV
-offset_list1 = [-200, -100, -50,-20,-10,-5,-2,-1,-0.5,-0.2,-0.1,-0.05,-0.02,-0.01, 
-         0, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, 100, 200]
+# offset_list1 = [-200, -100, -50,-20,-10,-5,-2,-1,-0.5,-0.2,-0.1,-0.05,-0.02,-0.01, 
+#          0, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, 100, 200]
+offset_list1 = [-200, -100, -50, -10, -5, -1, -0.1, 
+         0, 0.1, 1, 5, 10, 50, 100, 200]
 offset_list2 = offset_list1 
 offset_list3 = offset_list1
 offset_list4 = offset_list1
@@ -240,7 +242,7 @@ nist_seebeck_coeff = get_s_coeff(T_ref_K)
 control = [nist_seebeck_coeff] * len(offset_list1) # for plotting true value
 
 # hold offsets 3 and 4 constant while varying 1 and 2
-for ind in range(0, len(offset_list2), 2):
+for ind in range(len(offset_list2)):
     s_coeffs = []
     offs_inputs[2] = offset_list2[ind]
     for offset1 in offset_list1:
@@ -266,7 +268,7 @@ plt.show()
 
 # hold offsets 1 and 2 constant while varying 3 and 4
 offs_inputs = [0, 0, 0, 0, 0]
-for ind in range(0, len(offset_list4), 2):
+for ind in range(len(offset_list4)):
     s_coeffs = []
     offs_inputs[4] = offset_list4[ind]
     for offset3 in offset_list3:
@@ -291,7 +293,7 @@ plt.show()
 
 # hold offsets 2 and 4 constant while varying 1 and 3
 offs_inputs = [0, 0, 0, 0, 0]
-for ind in range(0, len(offset_list3), 2):
+for ind in range(len(offset_list3)):
     s_coeffs = []
     offs_inputs[3] = offset_list3[ind]
     for offset1 in offset_list1:
