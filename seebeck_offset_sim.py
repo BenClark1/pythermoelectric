@@ -79,8 +79,9 @@ def Seebeck_Cu(T):
     s_cu = 0.041*T*( exp_term + 0.123 -  rational_fraction) + 0.804
     return s_cu
 
-def get_s_coeff(T):
-# NIST provided Seebeck coefficients for Bi2Te3+x
+def Seebeck_SRM3451(T):
+# Standard Reference Material (SRM) 3451 = Bi2Te3+x
+# NIST provided Seebeck coefficients for SRM3451
 # T must be in kelvin: Seebeck coeff [uV/K]
     A = 295 # entral temp (room temp) K    
     S_A = -230.03 # µV/K
@@ -94,10 +95,18 @@ def get_s_coeff(T):
     term4 = d*T**4*(1-(A/T))**4
     return S_A + term1 + term2 + term3 + term4
     
+def Seebeck_constantan(T): # units of T: K
+    # get the Seebeck coefficent of Constantan
+    # first get Seebeck coefficient for Copper/Constantan T-type thermocouple
+    # MUST BE FOR 73.15 K < T < 673.15 K
+    S_Cu_Con = 4.37184 + 0.1676*T - (1.84371e-4)*T**2 \
+        + (1.2244e-7)*T**3 - (4.47618e-11)*T**4
+    # subtract Cu/Con Seebeck value from copper Seebeck to get Con Seebeck
+    return Seebeck_Cu(T) - S_Cu_Con
+
 def seebeck_measurement(Thots_C, Tcolds_C, offs, plot=False):
     # offs: a list of 5 offsets, first term must be zero
-    
-        # index corresponds to offset location 
+        # index of offs corresponds to offset location 
     # use conversion polynomials to get delta V values
     delta_V12_true = [temp_to_voltage(temp, T_ref_C) for temp in Thots_C] # mV
     delta_V34_true = [temp_to_voltage(temp, T_ref_C) for temp in Tcolds_C] # mV
@@ -115,15 +124,14 @@ def seebeck_measurement(Thots_C, Tcolds_C, offs, plot=False):
     # new_dT is the same in both Kelvin and Celsius
     new_dT = [offs_Thots_C[ind]-offs_Tcolds_C[ind] for \
               ind in range(len(offs_Thots_C))]
-    
-    # S_Cu = round(Seebeck_Cu(T_ref_K), 3) # units: uV/K
+        
     S_Cu = round(Seebeck_Cu(T_ref_K), 3) # units: uV/K
     # S_Con = # Seebeck coefficient of constantan: uV/K
     
     
-    true_deltaV13 = [-1*(get_s_coeff(T_ref_K) - S_Cu)*delta_T for \
+    true_deltaV13 = [-1*(Seebeck_SRM3451(T_ref_K) - S_Cu)*delta_T for \
                      delta_T in dT_true]
-    # true_deltaV24 = [-1*(get_s_coeff(T_ref_K) - S_Con)*delta_T for delta_T in new_dT]
+    # true_deltaV24 = [-1*(Seebeck_SRM3451(T_ref_K) - S_Con)*delta_T for delta_T in new_dT]
     # note: true_deltaV is in uV
     # introduce voltage offset for true_deltaV lists, convert to mV
     meas_deltaV13 = [volt + offs[1]/1000 + offs[3]/1000 for volt in true_deltaV13]
@@ -238,7 +246,7 @@ c = [c_neg, c_pos] # c[1] gives positive polynomial, c[0] gives negative
 offs_inputs = [0, 0, 0, 0, 0]
 print(seebeck_measurement(Thots_C, Tcolds_C, offs_inputs))
 
-nist_seebeck_coeff = get_s_coeff(T_ref_K)
+nist_seebeck_coeff = Seebeck_SRM3451(T_ref_K)
 control = [nist_seebeck_coeff] * len(offset_list1) # for plotting true value
 
 # hold offsets 3 and 4 constant while varying 1 and 2
