@@ -64,9 +64,9 @@ def calculate_trendline(x_vals, y_vals):
     trend_intercept = mean_y - (trend_slope * mean_x)
     trend_y_vals = [trend_slope*xval + trend_intercept for xval in x_vals]
         
-    print("\nTrendline slope: %f" % (trend_slope))
-    print("Trendline intercept: %f" % (trend_intercept))   
-    print("Correlation coefficient: %f" % (correlation)) 
+    # print("\nTrendline slope: %f" % (trend_slope))
+    # print("Trendline intercept: %f" % (trend_intercept))   
+    # print("Correlation coefficient: %f" % (correlation)) 
 
     return {'slope':trend_slope, 
             'intercept':trend_intercept, 
@@ -113,29 +113,29 @@ def seebeck_measurement(Thots_C, Tcolds_C, offs, plot=False):
     # add simulated voltage offsets, convert to mV
     delta_V12_meas = [volt + offs[1]/1000 + offs[2]/1000 for volt in delta_V12_true]
     delta_V34_meas = [volt + offs[3]/1000 + offs[4]/1000 for volt in delta_V34_true]
-    round_and_print("Voltage across hot thermocouple: ", delta_V12_true, 7)
-    round_and_print("Voltage across cold thermocouple: ", delta_V34_true, 7)
+    # round_and_print("Voltage across hot thermocouple: ", delta_V12_true, 7)
+    # round_and_print("Voltage across cold thermocouple: ", delta_V34_true, 7)
     
     # use polynomials to return to temperatures
     offs_Thots_C = [voltage_to_temp(volt, T_ref_C) for volt in delta_V12_meas]
     offs_Tcolds_C = [voltage_to_temp(volt, T_ref_C) for volt in delta_V34_meas]
-    round_and_print("Offset hot temperatures (C): ", offs_Thots_C, 7)
-    round_and_print("Offset cold temperatures(C): ", offs_Tcolds_C, 7)
+    # round_and_print("Offset hot temperatures (C): ", offs_Thots_C, 7)
+    # round_and_print("Offset cold temperatures(C): ", offs_Tcolds_C, 7)
     # new_dT is the same in both Kelvin and Celsius
     new_dT = [offs_Thots_C[ind]-offs_Tcolds_C[ind] for \
               ind in range(len(offs_Thots_C))]
         
     S_Cu = round(Seebeck_Cu(T_ref_K), 3) # units: uV/K
-    # S_Con = # Seebeck coefficient of constantan: uV/K
-    
+    S_Con = round(Seebeck_constantan(T_ref_K), 3) # units: uV/K
     
     true_deltaV13 = [-1*(Seebeck_SRM3451(T_ref_K) - S_Cu)*delta_T for \
                      delta_T in dT_true]
-    # true_deltaV24 = [-1*(Seebeck_SRM3451(T_ref_K) - S_Con)*delta_T for delta_T in new_dT]
+    true_deltaV24 = [-1*(Seebeck_SRM3451(T_ref_K) - S_Con)*delta_T for \
+                     delta_T in dT_true]
     # note: true_deltaV is in uV
     # introduce voltage offset for true_deltaV lists, convert to mV
     meas_deltaV13 = [volt + offs[1]/1000 + offs[3]/1000 for volt in true_deltaV13]
-    # meas_deltaV24 = [volt + offs[2] + offs[4] for volt in true_deltaV24]
+    meas_deltaV24 = [volt + offs[2]/1000 + offs[4]/1000 for volt in true_deltaV24]
     
     # get a dictionary with slope, intercept, and trendline y values
     trend_info = calculate_trendline(new_dT, meas_deltaV13)
@@ -165,7 +165,7 @@ def seebeck_measurement(Thots_C, Tcolds_C, offs, plot=False):
 # dQ/dT_true = P = kA(dT_true/dx) = power delivered to the sample
 powers = [0, 1e-3, 2e-3, 3e-3, 4e-3, 5e-3, \
           6e-3, 7e-3, 8e-3, 9e-3, 10e-3] # units: W eventually test 100 values here
-round_and_print("Input power values: ", powers, 7)
+round_and_print("Input power values (W): ", powers, 7)
 kappa = 2.0 # units: W/(m*K)  thermal conductivity kappa for Bi2Te3
 area = 0.002**2 # units: m^2  2mm x 2mm cross sectional area 
 # location of hot and cold thermocoulpe probe points
@@ -179,8 +179,10 @@ dT_true = [(pwr * dx)/(kappa * area) for pwr in powers] #units: K
 # reference temperature at the base of the sample
 T_ref_K = 80 # units: K
 # get hot and cold temperatures and convert to celsius
-Thots_C = [kelvin_to_celsius((delta_T/dx)*x_hot + T_ref_K) for delta_T in dT_true]
-Tcolds_C = [kelvin_to_celsius((delta_T/dx)*x_cold + T_ref_K) for delta_T in dT_true] 
+Thots = [(delta_T/dx)*x_hot + T_ref_K for delta_T in dT_true]
+Tcolds = [(delta_T/dx)*x_cold + T_ref_K for delta_T in dT_true] 
+Thots_C = [kelvin_to_celsius(temp) for temp in Thots]
+Tcolds_C = [kelvin_to_celsius(temp) for temp in Tcolds] 
 T_ref_C = kelvin_to_celsius(T_ref_K) # reference temperature in celsius
 # create offsets in uV
 # offset_list1 = [-200, -100, -50,-20,-10,-5,-2,-1,-0.5,-0.2,-0.1,-0.05,-0.02,-0.01, 
@@ -192,8 +194,8 @@ offset_list3 = offset_list1
 offset_list4 = offset_list1
 ind_zero = len(offset_list1)//2 # get index of zero offset (center of list) 
 
-round_and_print("Initial hot temperatures (Thot C): ", Thots_C, 7)
-round_and_print("Initial cold temperatures(Tcold C): ", Tcolds_C, 7)
+# round_and_print("Initial hot temperatures (Thot C): ", Thots_C, 7)
+# round_and_print("Initial cold temperatures(Tcold C): ", Tcolds_C, 7)
 
 # coefficients for EMF as a function of temperature b0-b14 (-270C<=T<=0C)
 b_neg = [0.0,
@@ -244,10 +246,9 @@ c = [c_neg, c_pos] # c[1] gives positive polynomial, c[0] gives negative
 
 
 offs_inputs = [0, 0, 0, 0, 0]
-print(seebeck_measurement(Thots_C, Tcolds_C, offs_inputs))
+# print(seebeck_measurement(Thots_C, Tcolds_C, offs_inputs))
 
-nist_seebeck_coeff = Seebeck_SRM3451(T_ref_K)
-control = [nist_seebeck_coeff] * len(offset_list1) # for plotting true value
+control = [Seebeck_SRM3451(T_ref_K)] * len(offset_list1) # for plotting true value
 
 # hold offsets 3 and 4 constant while varying 1 and 2
 for ind in range(len(offset_list2)):
@@ -270,6 +271,7 @@ plt.xlabel(r'$\delta V1 (uV)$')
 plt.ylabel('Seebeck Coefficient (uV/K)')
 plt.legend(bbox_to_anchor=(1.05,1))
 # plt.autoscale(enable=False, axis='y')
+plt.grid()
 plt.show()
 
 
@@ -295,6 +297,7 @@ plt.xlabel(r'$\delta V3 (uV)$')
 plt.ylabel('Seebeck Coefficient (uV/K)')
 plt.legend(bbox_to_anchor=(1.05,1))
 # plt.autoscale(enable=False, axis='y')
+plt.grid()
 plt.show()
 
 
@@ -320,6 +323,7 @@ plt.xlabel(r'$\delta V1 (uV)$')
 plt.ylabel('Seebeck Coefficient (uV/K)')
 plt.legend(bbox_to_anchor=(1.05,1))
 # plt.autoscale(enable=False, axis='y')
+plt.grid()
 plt.show()
 
 
