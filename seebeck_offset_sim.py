@@ -127,7 +127,7 @@ def seebeck_measurement(Thots_C, Tcolds_C, offs, plot=False):
         
     S_Cu = round(Seebeck_Cu(avg_avg_temps), 3) # units: uV/K
     S_Con = round(Seebeck_constantan(avg_avg_temps), 3) # units: uV/K
-    
+    # swap S_Cu and S_Con - done?
     true_deltaV13 = [-1*(Seebeck_SRM3451(avg_avg_temps) - S_Cu)*delta_T for \
                      delta_T in dT_true]
     true_deltaV24 = [-1*(Seebeck_SRM3451(avg_avg_temps) - S_Con)*delta_T for \
@@ -151,7 +151,7 @@ def seebeck_measurement(Thots_C, Tcolds_C, offs, plot=False):
         plt.ylabel('Thermoelectric Voltage (uV)')
         plt.show()
         
-    S_sample = -1*trend_info['slope'] + S_Cu
+    S_sample = -1*trend_info['slope'] + S_Cu # need to add S_const
     # print("\nFinal Seebeck Coefficient of the Sample: ")
     # print(round(S_sample, 9))
     
