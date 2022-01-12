@@ -127,23 +127,22 @@ def seebeck_measurement(Thots_C, Tcolds_C, offs, plot=False):
         
     S_Cu = round(Seebeck_Cu(avg_avg_temps), 3) # units: uV/K
     S_Con = round(Seebeck_constantan(avg_avg_temps), 3) # units: uV/K
-    # swap S_Cu and S_Con - done?
-    true_deltaV13 = [-1*(Seebeck_SRM3451(avg_avg_temps) - S_Cu)*delta_T for \
+    true_deltaV13 = [-1*(Seebeck_SRM3451(avg_avg_temps) - S_Con)*delta_T for \
                      delta_T in dT_true]
-    true_deltaV24 = [-1*(Seebeck_SRM3451(avg_avg_temps) - S_Con)*delta_T for \
+    true_deltaV24 = [-1*(Seebeck_SRM3451(avg_avg_temps) - S_Cu)*delta_T for \
                      delta_T in dT_true]
     # note: true_deltaV is in uV
     # introduce voltage offset for true_deltaV lists, convert to mV
     meas_deltaV13 = [volt + offs[1]/1000 + offs[3]/1000 for volt in true_deltaV13]
     meas_deltaV24 = [volt + offs[2]/1000 + offs[4]/1000 for volt in true_deltaV24]
     meas_deltaV = [meas_deltaV24, meas_deltaV13]
-    use_top_wires = True # choose between deltaV13 or deltaV24 for Seebeck voltage
+    use_top_13_wires = False # choose between deltaV13 or deltaV24 for Seebeck voltage
     
     # get a dictionary with slope, intercept, and trendline y values
-    trend_info = calculate_trendline(new_dT, meas_deltaV[use_top_wires])
+    trend_info = calculate_trendline(new_dT, meas_deltaV[use_top_13_wires])
     
     if plot:
-        plt.plot(new_dT, meas_deltaV[use_top_wires], 'r.', 
+        plt.plot(new_dT, meas_deltaV[use_top_13_wires], 'r.', 
                  new_dT, trend_info['trendline'], 'b')
         plt.title('Thermoelectric Votlage Produced by Seebeck Effect in Bi₂Te₃₊ₓ', 
                   pad=20)
