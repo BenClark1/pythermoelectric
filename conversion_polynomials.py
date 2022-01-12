@@ -87,6 +87,22 @@ plt.grid()
 plt.show()
 
 
+volts_in = np.linspace(0.1, 40, 201) # units: mV
+temps_out = [voltage_to_temp(volt, 80) for volt in volts_in]
+
+plt.plot(volts_in, temps_out)
+plt.title('Voltage to Temperature Conversion Polynomial', pad=20)
+plt.xlabel('Voltage (mV)')
+plt.ylabel('Temperature (C)')
+plt.grid()
+plt.show()
+
+
+
+
+
+
+
 
 
 
