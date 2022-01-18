@@ -150,7 +150,8 @@ def seebeck_measurement(Thots_C, Tcolds_C, offs, plot=False):
         plt.ylabel('Thermoelectric Voltage (uV)')
         plt.show()
         
-    S_sample = -1*trend_info['slope'] + S_Cu # need to add S_const
+    # is this correct? :
+    S_sample = -1*trend_info['slope'] + [S_Cu, S_Con][use_top_13_wires] # need to add S_const
     # print("\nFinal Seebeck Coefficient of the Sample: ")
     # print(round(S_sample, 9))
     
@@ -189,7 +190,7 @@ T_ref_C = kelvin_to_celsius(T_ref_K) # reference temperature in celsius
 # create offsets in uV
 # offset_list1 = [-200, -100, -50,-20,-10,-5,-2,-1,-0.5,-0.2,-0.1,-0.05,-0.02,-0.01, 
 #          0, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, 100, 200]
-offset_list1 = [-200, -100, -10, -1, -0.1, 0, 0.1, 1, 10, 100, 200]
+offset_list1 = [-200, -100, -50, 0, 50, 100, 200]
 offset_list2 = offset_list1 
 offset_list3 = offset_list1
 offset_list4 = offset_list1
@@ -330,7 +331,29 @@ plt.grid()
 plt.show()
 
 
-
+# hold offsets 1 and 3 constant while varying 2 and 4
+offs_inputs = [0, 0, 0, 0, 0]
+for ind in range(len(offset_list4)):
+    s_coeffs = []
+    offs_inputs[4] = offset_list4[ind]
+    for offset2 in offset_list2:
+        offs_inputs[2] = offset2
+        s_coeffs.append(seebeck_measurement(Thots_C, Tcolds_C, offs_inputs))
+    
+    # plt.plot(offset_list1, s_coeffs, color=(ind/len(offset_list3),
+    #                                  ind*0.5/len(offset_list3),
+    #                                  ind*0.1/len(offset_list3)))
+    plt.plot(offset_list2, s_coeffs, 
+             label=r'$\delta V4=%.2f uV$' % (round(offs_inputs[4], 2)))
+    
+plt.plot(offset_list2, true_seebeck, 'r--')
+plt.title('Variation in Seebeck Coefficient due to Voltgae Offsets', pad=20)
+plt.xlabel(r'$\delta V2 (uV)$')
+plt.ylabel('Seebeck Coefficient (uV/K)')
+plt.legend(bbox_to_anchor=(1.05,1))
+# plt.autoscale(enable=False, axis='y')
+plt.grid()
+plt.show()
 
 
 
