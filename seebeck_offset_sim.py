@@ -10,6 +10,7 @@ import math
 # functions ----------------------------------------
 def temp_to_voltage(temp_in, T_ref): 
     # convert temperature (C) to EMF (mV) type T thermocouple
+    # only for -270C <= temp_in <= 400C
     emf_pre = 0 # preliminary voltage before subtracting out emf_ref
     for ind in range(len(b[temp_in>0])):
         emf_pre += b[temp_in>0][ind]*(temp_in**ind)
@@ -20,6 +21,7 @@ def temp_to_voltage(temp_in, T_ref):
 
 def voltage_to_temp(emf_measured, T_ref):
     # convert EMF (mV) to temperature (C) for type T thermocouple
+    # only for -5.603mV <= emf_measured <= 20.872mV
     temp_out = 0
     emf_ref = 0 # compute EMF for reference temperature using polynomial
     for ind in range(len(b[T_ref>0])):
@@ -82,7 +84,7 @@ def Seebeck_Cu(T):
 def Seebeck_SRM3451(T):
 # Standard Reference Material (SRM) 3451 = Bi2Te3+x
 # NIST provided Seebeck coefficients for SRM3451
-# T must be in kelvin: Seebeck coeff [uV/K]
+# T must be in KELVIN: Seebeck coeff [uV/K]
     A = 295 # entral temp (room temp) K    
     S_A = -230.03 # µV/K
     a = -2.2040e-1 # coefficients
@@ -125,11 +127,11 @@ def seebeck_measurement(Thots_C, Tcolds_C, offs, plot=False):
     new_dT = [offs_Thots_C[ind]-offs_Tcolds_C[ind] for \
               ind in range(len(offs_Thots_C))]
         
-    S_Cu = round(Seebeck_Cu(avg_avg_temps), 3) # units: uV/K
-    S_Con = round(Seebeck_constantan(avg_avg_temps), 3) # units: uV/K
-    true_deltaV13 = [-1*(Seebeck_SRM3451(avg_avg_temps) - S_Con)*delta_T for \
+    S_Cu = round(Seebeck_Cu(avg_avg_temp), 3) # units: uV/K
+    S_Con = round(Seebeck_constantan(avg_avg_temp), 3) # units: uV/K
+    true_deltaV13 = [-1*(Seebeck_SRM3451(avg_avg_temp) - S_Con)*delta_T for \
                      delta_T in dT_true]
-    true_deltaV24 = [-1*(Seebeck_SRM3451(avg_avg_temps) - S_Cu)*delta_T for \
+    true_deltaV24 = [-1*(Seebeck_SRM3451(avg_avg_temp) - S_Cu)*delta_T for \
                      delta_T in dT_true]
     # note: true_deltaV is in uV
     # introduce voltage offset for true_deltaV lists, convert to mV
@@ -250,9 +252,24 @@ c = [c_neg, c_pos] # c[1] gives positive polynomial, c[0] gives negative
 offs_inputs = [0, 0, 0, 0, 0]
 # print(seebeck_measurement(Thots_C, Tcolds_C, offs_inputs))
 avg_temps = [(Thots[i]+Tcolds[i])/2 for i in range(len(Thots))]
-avg_avg_temps =  sum(avg_temps)/len(avg_temps)  
+avg_avg_temp =  sum(avg_temps)/len(avg_temps)  
 # for plotting true value
-true_seebeck = [Seebeck_SRM3451(avg_avg_temps)] * len(offset_list1)
+true_seebeck = [Seebeck_SRM3451(avg_avg_temp)] * len(offset_list1)
+
+# create temperature power relationship plot
+powers_mw = [pwr*1000 for pwr in powers]
+plt.plot(powers_mw, Thots, marker='.', label="Hot Temperatures")
+plt.plot(powers_mw, Tcolds, marker='.', label="Cold Temperatures")
+plt.plot(powers_mw, avg_temps, marker='.', label="Average: (Thot+Tcold)/2")
+plt.plot(powers_mw, [avg_avg_temp]*len(powers_mw), 
+         'r--', label="Overall Average")
+plt.title('Temperature Variations with Heater Power', pad=20)
+plt.xlabel('Heater Power (mW)')
+plt.ylabel('Temperature (K)')
+plt.legend(bbox_to_anchor=(1.05,1))
+# plt.autoscale(enable=False, axis='y')
+plt.grid()
+plt.show()
 
 # hold offsets 3 and 4 constant while varying 1 and 2
 for ind in range(len(offset_list2)):

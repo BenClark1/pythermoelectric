@@ -10,7 +10,8 @@ import matplotlib.pyplot as plt
 
 # functions ----------------------------------------
 def temp_to_voltage(temp_in, T_ref): 
-    # convert temperature (C) to EMF (mV) type T thermocouple
+    # convert temperature (C) to EMF (mV) type T thermocouple+
+    # only for -270C <= temp_in <= 400C
     emf_pre = 0 # preliminary voltage before subtracting out emf_ref
     for ind in range(len(b[temp_in>0])):
         emf_pre += b[temp_in>0][ind]*(temp_in**ind)
@@ -21,6 +22,7 @@ def temp_to_voltage(temp_in, T_ref):
 
 def voltage_to_temp(emf_measured, T_ref):
     # convert EMF (mV) to temperature (C) for type T thermocouple
+    # only for -5.603mV <= emf_measured <= 20.872mV
     temp_out = 0
     emf_ref = 0 # compute EMF for reference temperature using polynomial
     for ind in range(len(b[T_ref>0])):
@@ -29,6 +31,9 @@ def voltage_to_temp(emf_measured, T_ref):
     for ind in range(len(c[final_emf>0])):
         temp_out += c[final_emf>0][ind]*(final_emf**ind)
     return temp_out # returns temperature in Celsius (C)
+
+def kelvin_to_celsius(kelv_in):
+    return kelv_in - 273.15
 
 # coefficients for EMF as a function of temperature b0-b14 (-270C<=T<=0C)
 b_neg = [0.0,
@@ -76,8 +81,12 @@ c_pos = [0.0,
 -7.293422e-7]
 c = [c_neg, c_pos] # c[1] gives positive polynomial, c[0] gives negative
 
+T_ref_K = 80 # units: K
+T_ref_C = kelvin_to_celsius(T_ref_K) # reference temperature in celsius
+
 temps_in = np.linspace(-200, 100, 301) # units: C
-volts_out = [temp_to_voltage(temp, 80) for temp in temps_in]
+# temps_in = np.linspace(-200, -180, 301) # units: C
+volts_out = [temp_to_voltage(temp, T_ref_C) for temp in temps_in]
 
 plt.plot(temps_in, volts_out)
 plt.title('Temperature to Voltage Conversion Polynomial', pad=20)
@@ -87,8 +96,9 @@ plt.grid()
 plt.show()
 
 
-volts_in = np.linspace(0.1, 40, 201) # units: mV
-temps_out = [voltage_to_temp(volt, 80) for volt in volts_in]
+volts_in = np.linspace(-4, 20, 201) # units: mV
+# volts_in = np.linspace(-0.1, 0.3, 201) # units: mV
+temps_out = [voltage_to_temp(volt, T_ref_C) for volt in volts_in]
 
 plt.plot(volts_in, temps_out)
 plt.title('Voltage to Temperature Conversion Polynomial', pad=20)
