@@ -170,8 +170,7 @@ def seebeck_measurement(Thots_C, Tcolds_C, offs, plot=False):
 # main script ---------------------------------------
 
 # dQ/dT_true = P = kA(dT_true/dx) = power delivered to the sample
-powers = [0, 1e-3, 2e-3, 3e-3, 4e-3, 5e-3, \
-          6e-3, 7e-3, 8e-3, 9e-3, 10e-3] # units: W eventually test 100 values here
+powers = [5e-3] # units: W eventually test 100 values here
 round_and_print("Input power values (W): ", powers, 7)
 kappa = 2.0 # units: W/(m*K)  thermal conductivity kappa for Bi2Te3
 area = 0.002**2 # units: m^2  2mm x 2mm cross sectional area 

@@ -125,7 +125,8 @@ def seebeck_measurement(Thots_C, Tcolds_C, offs, plot=False):
     # round_and_print("Offset cold temperatures(C): ", offs_Tcolds_C, 7)
     # new_dT is the same in both Kelvin and Celsius
     new_dT = [offs_Thots_C[ind]-offs_Tcolds_C[ind] for \
-              ind in range(len(offs_Thots_C))]
+              ind in range(len(offs_Thots_C))] 
+        #DEBOOR METHOD DOESN'T USE OFFSET TEMPS
         
     S_Cu = round(Seebeck_Cu(avg_avg_temp), 3) # units: uV/K
     S_Con = round(Seebeck_constantan(avg_avg_temp), 3) # units: uV/K
@@ -137,23 +138,26 @@ def seebeck_measurement(Thots_C, Tcolds_C, offs, plot=False):
     # introduce voltage offset for true_deltaV lists, convert to mV
     meas_deltaV13 = [volt + offs[1]/1000 + offs[3]/1000 for volt in true_deltaV13]
     meas_deltaV24 = [volt + offs[2]/1000 + offs[4]/1000 for volt in true_deltaV24]
-    meas_deltaV = [meas_deltaV24, meas_deltaV13]
-    use_top_13_wires = False # choose between deltaV13 or deltaV24 for Seebeck voltage
+    # meas_deltaV = [meas_deltaV24, meas_deltaV13]
+    # use_top_13_wires = False # choose between deltaV13 or deltaV24 for Seebeck voltage
+    Cu_Con_voltage_trend = calculate_trendline(meas_deltaV13, meas_deltaV24)
     
-    # get a dictionary with slope, intercept, and trendline y values
-    trend_info = calculate_trendline(new_dT, meas_deltaV[use_top_13_wires])
+    # # get a dictionary with slope, intercept, and trendline y values
+    # trend_info = calculate_trendline(new_dT, meas_deltaV[use_top_13_wires])
     
-    if plot:
-        plt.plot(new_dT, meas_deltaV[use_top_13_wires], 'r.', 
-                 new_dT, trend_info['trendline'], 'b')
-        plt.title('Thermoelectric Votlage Produced by Seebeck Effect in Bi₂Te₃₊ₓ', 
-                  pad=20)
-        plt.xlabel('Temperature Difference (K)')
-        plt.ylabel('Thermoelectric Voltage (uV)')
-        plt.show()
+    # if plot:
+    #     plt.plot(new_dT, meas_deltaV[use_top_13_wires], 'r.', 
+    #              new_dT, trend_info['trendline'], 'b')
+    #     plt.title('Thermoelectric Votlage Produced by Seebeck Effect in Bi₂Te₃₊ₓ', 
+    #               pad=20)
+    #     plt.xlabel('Temperature Difference (K)')
+    #     plt.ylabel('Thermoelectric Voltage (uV)')
+    #     plt.show()
         
-    # is this correct? :
-    S_sample = -1*trend_info['slope'] + [S_Cu, S_Con][use_top_13_wires] # need to add S_const
+    # S_sample = -1*trend_info['slope'] + [S_Cu, S_Con][use_top_13_wires] 
+    S_TC = S_Cu - S_Con # Seebeck coefficient of thermocouple
+    S_sample = ( S_TC / (1 - Cu_Con_voltage_trend['slope']) ) + S_Con
+    
     # print("\nFinal Seebeck Coefficient of the Sample: ")
     # print(round(S_sample, 9))
     
