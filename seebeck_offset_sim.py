@@ -256,21 +256,6 @@ avg_avg_temp =  sum(avg_temps)/len(avg_temps)
 # for plotting true value
 true_seebeck = [Seebeck_SRM3451(avg_avg_temp)] * len(offset_list1)
 
-# # create temperature power relationship plot
-# powers_mw = [pwr*1000 for pwr in powers]
-# plt.plot(powers_mw, Thots, marker='.', label="Hot Temperatures")
-# plt.plot(powers_mw, Tcolds, marker='.', label="Cold Temperatures")
-# plt.plot(powers_mw, avg_temps, marker='.', label="Average: (Thot+Tcold)/2")
-# plt.plot(powers_mw, [avg_avg_temp]*len(powers_mw), 
-#          'r--', label="Overall Average")
-# plt.title('Temperature Variations with Heater Power', pad=20)
-# plt.xlabel('Heater Power (mW)')
-# plt.ylabel('Temperature (K)')
-# plt.legend(bbox_to_anchor=(1.05,1))
-# # plt.autoscale(enable=False, axis='y')
-# plt.grid()
-# plt.show()
-
 # hold offsets 3 and 4 constant while varying 1 and 2
 for ind in range(len(offset_list2)):
     s_coeffs = []
