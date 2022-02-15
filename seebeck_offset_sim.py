@@ -127,11 +127,11 @@ def seebeck_measurement(Thots_C, Tcolds_C, offs, plot=False):
     new_dT = [offs_Thots_C[ind]-offs_Tcolds_C[ind] for \
               ind in range(len(offs_Thots_C))]
         
-    S_Cu = round(Seebeck_Cu(avg_avg_temp), 3) # units: uV/K
-    S_Con = round(Seebeck_constantan(avg_avg_temp), 3) # units: uV/K
-    true_deltaV13 = [-1*(Seebeck_SRM3451(avg_avg_temp) - S_Con)*delta_T for \
+    S_Cu = round(Seebeck_Cu(T_ref_K), 3) # units: uV/K
+    S_Con = round(Seebeck_constantan(T_ref_K), 3) # units: uV/K
+    true_deltaV13 = [-1*(Seebeck_SRM3451(T_ref_K) - S_Con)*delta_T for \
                      delta_T in dT_true]
-    true_deltaV24 = [-1*(Seebeck_SRM3451(avg_avg_temp) - S_Cu)*delta_T for \
+    true_deltaV24 = [-1*(Seebeck_SRM3451(T_ref_K) - S_Cu)*delta_T for \
                      delta_T in dT_true]
     # note: true_deltaV is in uV
     # introduce voltage offset for true_deltaV lists, convert to mV
@@ -164,42 +164,6 @@ def seebeck_measurement(Thots_C, Tcolds_C, offs, plot=False):
     # print([Tcolds_C[i]-offs_Tcolds_C[i] for i in range(len(offs_Tcolds_C))])
 
     return S_sample
-
-# main script ---------------------------------------
-
-# dQ/dT_true = P = kA(dT_true/dx) = power delivered to the sample
-powers = [0, 1e-3, 2e-3, 3e-3, 4e-3, 5e-3, \
-          6e-3, 7e-3, 8e-3, 9e-3, 10e-3] # units: W eventually test 100 values here
-round_and_print("Input power values (W): ", powers, 7)
-kappa = 2.0 # units: W/(m*K)  thermal conductivity kappa for Bi2Te3
-area = 0.002**2 # units: m^2  2mm x 2mm cross sectional area 
-# location of hot and cold thermocoulpe probe points
-x_cold = 0.001667 # 1.67mm, or sample length / 3
-dx = 0.001667 # 1.67mm  length difference between each thermocouple probe point
-x_hot = x_cold + dx # 2*1.67mm
-# difference in temperature between each thermocouple (delta T)
-dT_true = [(pwr * dx)/(kappa * area) for pwr in powers] #units: K
-# derivative of T with respect to x is 
-    # dT_true/dx (slope)  T(x) = (dT_true/dx)x + T_ref_K
-# reference temperature at the base of the sample
-T_ref_K = 80 # units: K
-# get hot and cold temperatures and convert to celsius
-Thots = [(delta_T/dx)*x_hot + T_ref_K for delta_T in dT_true]
-Tcolds = [(delta_T/dx)*x_cold + T_ref_K for delta_T in dT_true] 
-Thots_C = [kelvin_to_celsius(temp) for temp in Thots]
-Tcolds_C = [kelvin_to_celsius(temp) for temp in Tcolds] 
-T_ref_C = kelvin_to_celsius(T_ref_K) # reference temperature in celsius
-# create offsets in uV
-# offset_list1 = [-200, -100, -50,-20,-10,-5,-2,-1,-0.5,-0.2,-0.1,-0.05,-0.02,-0.01, 
-#          0, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, 100, 200]
-offset_list1 = [-200, -100, -50, 0, 50, 100, 200]
-offset_list2 = offset_list1 
-offset_list3 = offset_list1
-offset_list4 = offset_list1
-ind_zero = len(offset_list1)//2 # get index of zero offset (center of list) 
-
-# round_and_print("Initial hot temperatures (Thot C): ", Thots_C, 7)
-# round_and_print("Initial cold temperatures(Tcold C): ", Tcolds_C, 7)
 
 # coefficients for EMF as a function of temperature b0-b14 (-270C<=T<=0C)
 b_neg = [0.0,
@@ -247,14 +211,47 @@ c_pos = [0.0,
 -7.293422e-7]
 c = [c_neg, c_pos] # c[1] gives positive polynomial, c[0] gives negative
 
+# main script ---------------------------------------
+
+# dQ/dT_true = P = kA(dT_true/dx) = power delivered to the sample
+powers = [0, 1e-3, 2e-3, 3e-3, 4e-3, 5e-3, \
+          6e-3, 7e-3, 8e-3, 9e-3, 10e-3] # units: W eventually test 100 values here
+round_and_print("Input power values (W): ", powers, 7)
+kappa = 2.0 # units: W/(m*K)  thermal conductivity kappa for Bi2Te3
+area = 0.002**2 # units: m^2  2mm x 2mm cross sectional area 
+# location of hot and cold thermocoulpe probe points
+x_cold = 0.001667 # 1.67mm, or sample length / 3
+dx = 0.001667 # 1.67mm  length difference between each thermocouple probe point
+x_hot = x_cold + dx # 2*1.67mm
+# difference in temperature between each thermocouple (delta T)
+dT_true = [(pwr * dx)/(kappa * area) for pwr in powers] #units: K
+# derivative of T with respect to x is 
+    # dT_true/dx (slope)  T(x) = (dT_true/dx)x + T_ref_K
+# reference temperature at the base of the sample
+T_ref_K = 80 # units: K
+# get hot and cold temperatures and convert to celsius
+Thots = [(delta_T/dx)*x_hot + T_ref_K for delta_T in dT_true]
+Tcolds = [(delta_T/dx)*x_cold + T_ref_K for delta_T in dT_true] 
+Thots_C = [kelvin_to_celsius(temp) for temp in Thots]
+Tcolds_C = [kelvin_to_celsius(temp) for temp in Tcolds] 
+T_ref_C = kelvin_to_celsius(T_ref_K) # reference temperature in celsius
+# create offsets in uV
+# offset_list1 = [-200, -100, -50,-20,-10,-5,-2,-1,-0.5,-0.2,-0.1,-0.05,-0.02,-0.01, 
+#          0, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, 100, 200]
+offset_list1 = [-200, -100, -50, 0, 50, 100, 200]
+offset_list2 = offset_list1 
+offset_list3 = offset_list1
+offset_list4 = offset_list1
+ind_zero = len(offset_list1)//2 # get index of zero offset (center of list) 
+
+# round_and_print("Initial hot temperatures (Thot C): ", Thots_C, 7)
+# round_and_print("Initial cold temperatures(Tcold C): ", Tcolds_C, 7)
+
 
 
 offs_inputs = [0, 0, 0, 0, 0]
-# print(seebeck_measurement(Thots_C, Tcolds_C, offs_inputs))
-avg_temps = [(Thots[i]+Tcolds[i])/2 for i in range(len(Thots))]
-avg_avg_temp =  sum(avg_temps)/len(avg_temps)  
 # for plotting true value
-true_seebeck = [Seebeck_SRM3451(avg_avg_temp)] * len(offset_list1)
+true_seebeck = [Seebeck_SRM3451(T_ref_K)] * len(offset_list1)
 
 # hold offsets 3 and 4 constant while varying 1 and 2
 for ind in range(len(offset_list2)):
@@ -280,8 +277,6 @@ plt.legend(bbox_to_anchor=(1.05,1))
 plt.grid()
 plt.show()
 
-
-
 # hold offsets 1 and 2 constant while varying 3 and 4
 offs_inputs = [0, 0, 0, 0, 0]
 for ind in range(len(offset_list4)):
@@ -306,8 +301,6 @@ plt.legend(bbox_to_anchor=(1.05,1))
 plt.grid()
 plt.show()
 
-
-
 # hold offsets 2 and 4 constant while varying 1 and 3
 offs_inputs = [0, 0, 0, 0, 0]
 for ind in range(len(offset_list3)):
@@ -331,7 +324,6 @@ plt.legend(bbox_to_anchor=(1.05,1))
 # plt.autoscale(enable=False, axis='y')
 plt.grid()
 plt.show()
-
 
 # hold offsets 1 and 3 constant while varying 2 and 4
 offs_inputs = [0, 0, 0, 0, 0]
@@ -358,7 +350,46 @@ plt.grid()
 plt.show()
 
 
+# plot true/measured seebeck voltages vs. true/measured temperature differences
+offs_inputs = [0, 0, 0, 0, 0]
+# use conversion polynomials to get delta V values
+delta_V12_true = [temp_to_voltage(temp, T_ref_C) for temp in Thots_C] # mV
+delta_V34_true = [temp_to_voltage(temp, T_ref_C) for temp in Tcolds_C] # mV
+# add simulated voltage offsets, convert to mV
+delta_V12_meas = [volt + offs_inputs[1]/1000 + offs_inputs[2]/1000 
+                  for volt in delta_V12_true]
+delta_V34_meas = [volt + offs_inputs[3]/1000 + offs_inputs[4]/1000 
+                  for volt in delta_V34_true]
+# round_and_print("Voltage across hot thermocouple: ", delta_V12_true, 7)
+# round_and_print("Voltage across cold thermocouple: ", delta_V34_true, 7)
 
+# use polynomials to return to temperatures
+offs_Thots_C = [voltage_to_temp(volt, T_ref_C) for volt in delta_V12_meas]
+offs_Tcolds_C = [voltage_to_temp(volt, T_ref_C) for volt in delta_V34_meas]
+
+S_Cu = round(Seebeck_Cu(T_ref_K), 3) # units: uV/K
+S_Con = round(Seebeck_constantan(T_ref_K), 3) # units: uV/K
+true_deltaV13 = [-1*(Seebeck_SRM3451(T_ref_K) - S_Con)*delta_T for \
+                 delta_T in dT_true]
+true_deltaV24 = [-1*(Seebeck_SRM3451(T_ref_K) - S_Cu)*delta_T for \
+                 delta_T in dT_true]
+# note: true_deltaV is in uV
+# introduce voltage offset for true_deltaV lists, convert to mV
+meas_deltaV13 = [volt + offs_inputs[1]/1000 + offs_inputs[3]/1000 
+                 for volt in true_deltaV13]
+meas_deltaV24 = [volt + offs_inputs[2]/1000 + offs_inputs[4]/1000 
+                 for volt in true_deltaV24]
+meas_deltaV = [meas_deltaV24, meas_deltaV13]
+use_top_13_wires = False # choose between deltaV13 or deltaV24 for Seebeck voltage
+
+plt.plot(offset_list2, true_seebeck)
+plt.title('Variation in Seebeck Coefficient due to Voltgae Offsets', pad=20)
+plt.xlabel(r'$\delta V2 (uV)$')
+plt.ylabel('Seebeck Coefficient (uV/K)')
+plt.legend(bbox_to_anchor=(1.05,1))
+# plt.autoscale(enable=False, axis='y')
+plt.grid()
+plt.show()
 
 
 

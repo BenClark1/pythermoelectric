@@ -128,11 +128,11 @@ def seebeck_measurement(Thots_C, Tcolds_C, offs, plot=False):
               ind in range(len(offs_Thots_C))] 
         #DEBOOR METHOD DOESN'T USE OFFSET TEMPS
         
-    S_Cu = round(Seebeck_Cu(avg_avg_temp), 3) # units: uV/K
-    S_Con = round(Seebeck_constantan(avg_avg_temp), 3) # units: uV/K
-    true_deltaV13 = [-1*(Seebeck_SRM3451(avg_avg_temp) - S_Con)*delta_T for \
+    S_Cu = round(Seebeck_Cu(T_ref_K), 3) # units: uV/K
+    S_Con = round(Seebeck_constantan(T_ref_K), 3) # units: uV/K
+    true_deltaV13 = [-1*(Seebeck_SRM3451(T_ref_K) - S_Con)*delta_T for \
                      delta_T in dT_true]
-    true_deltaV24 = [-1*(Seebeck_SRM3451(avg_avg_temp) - S_Cu)*delta_T for \
+    true_deltaV24 = [-1*(Seebeck_SRM3451(T_ref_K) - S_Cu)*delta_T for \
                      delta_T in dT_true]
     # note: true_deltaV is in uV
     # introduce voltage offset for true_deltaV lists, convert to mV
@@ -253,21 +253,16 @@ ind_zero = len(offset_list1)//2 # get index of zero offset (center of list)
 
 
 
-
-
 offs_inputs = [0, 0, 0, 0, 0]
-# print(seebeck_measurement(Thots_C, Tcolds_C, offs_inputs))
-avg_temps = [(Thots[i]+Tcolds[i])/2 for i in range(len(Thots))]
-avg_avg_temp =  sum(avg_temps)/len(avg_temps)  
 # for plotting true value
-true_seebeck = [Seebeck_SRM3451(avg_avg_temp)] * len(offset_list1)
+true_seebeck = [Seebeck_SRM3451(T_ref_K)] * len(offset_list1)
 
 # # create temperature power relationship plot
 # powers_mw = [pwr*1000 for pwr in powers]
 # plt.plot(powers_mw, Thots, marker='.', label="Hot Temperatures")
 # plt.plot(powers_mw, Tcolds, marker='.', label="Cold Temperatures")
 # plt.plot(powers_mw, avg_temps, marker='.', label="Average: (Thot+Tcold)/2")
-# plt.plot(powers_mw, [avg_avg_temp]*len(powers_mw), 
+# plt.plot(powers_mw, [T_ref_K]*len(powers_mw), 
 #          'r--', label="Overall Average")
 # plt.title('Temperature Variations with Heater Power', pad=20)
 # plt.xlabel('Heater Power (mW)')

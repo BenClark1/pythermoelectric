@@ -165,42 +165,6 @@ def seebeck_measurement(Thots_C, Tcolds_C, offs, plot=False):
 
     return S_sample
 
-# main script ---------------------------------------
-
-# dQ/dT_true = P = kA(dT_true/dx) = power delivered to the sample
-powers = [0, 1e-3, 2e-3, 3e-3, 4e-3, 5e-3, \
-          6e-3, 7e-3, 8e-3, 9e-3, 10e-3] # units: W eventually test 100 values here
-round_and_print("Input power values (W): ", powers, 7)
-kappa = 2.0 # units: W/(m*K)  thermal conductivity kappa for Bi2Te3
-area = 0.002**2 # units: m^2  2mm x 2mm cross sectional area 
-# location of hot and cold thermocoulpe probe points
-x_cold = 0.001667 # 1.67mm, or sample length / 3
-dx = 0.001667 # 1.67mm  length difference between each thermocouple probe point
-x_hot = x_cold + dx # 2*1.67mm
-# difference in temperature between each thermocouple (delta T)
-dT_true = [(pwr * dx)/(kappa * area) for pwr in powers] #units: K
-# derivative of T with respect to x is 
-    # dT_true/dx (slope)  T(x) = (dT_true/dx)x + T_ref_K
-# reference temperature at the base of the sample
-T_ref_K = 80 # units: K
-# get hot and cold temperatures and convert to celsius
-Thots = [(delta_T/dx)*x_hot + T_ref_K for delta_T in dT_true]
-Tcolds = [(delta_T/dx)*x_cold + T_ref_K for delta_T in dT_true] 
-Thots_C = [kelvin_to_celsius(temp) for temp in Thots]
-Tcolds_C = [kelvin_to_celsius(temp) for temp in Tcolds] 
-T_ref_C = kelvin_to_celsius(T_ref_K) # reference temperature in celsius
-# create offsets in uV
-# offset_list1 = [-200, -100, -50,-20,-10,-5,-2,-1,-0.5,-0.2,-0.1,-0.05,-0.02,-0.01, 
-#          0, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, 100, 200]
-offset_list1 = [-200, -100, -50, 0, 50, 100, 200]
-offset_list2 = offset_list1 
-offset_list3 = offset_list1
-offset_list4 = offset_list1
-ind_zero = len(offset_list1)//2 # get index of zero offset (center of list) 
-
-# round_and_print("Initial hot temperatures (Thot C): ", Thots_C, 7)
-# round_and_print("Initial cold temperatures(Tcold C): ", Tcolds_C, 7)
-
 # coefficients for EMF as a function of temperature b0-b14 (-270C<=T<=0C)
 b_neg = [0.0,
 0.387481063640e-1,
@@ -246,6 +210,42 @@ c_pos = [0.0,
 6.048144e-5,
 -7.293422e-7]
 c = [c_neg, c_pos] # c[1] gives positive polynomial, c[0] gives negative
+
+# main script ---------------------------------------
+
+# dQ/dT_true = P = kA(dT_true/dx) = power delivered to the sample
+powers = [0, 1e-3, 2e-3, 3e-3, 4e-3, 5e-3, \
+          6e-3, 7e-3, 8e-3, 9e-3, 10e-3] # units: W eventually test 100 values here
+round_and_print("Input power values (W): ", powers, 7)
+kappa = 2.0 # units: W/(m*K)  thermal conductivity kappa for Bi2Te3
+area = 0.002**2 # units: m^2  2mm x 2mm cross sectional area 
+# location of hot and cold thermocoulpe probe points
+x_cold = 0.001667 # 1.67mm, or sample length / 3
+dx = 0.001667 # 1.67mm  length difference between each thermocouple probe point
+x_hot = x_cold + dx # 2*1.67mm
+# difference in temperature between each thermocouple (delta T)
+dT_true = [(pwr * dx)/(kappa * area) for pwr in powers] #units: K
+# derivative of T with respect to x is 
+    # dT_true/dx (slope)  T(x) = (dT_true/dx)x + T_ref_K
+# reference temperature at the base of the sample
+T_ref_K = 80 # units: K
+# get hot and cold temperatures and convert to celsius
+Thots = [(delta_T/dx)*x_hot + T_ref_K for delta_T in dT_true]
+Tcolds = [(delta_T/dx)*x_cold + T_ref_K for delta_T in dT_true] 
+Thots_C = [kelvin_to_celsius(temp) for temp in Thots]
+Tcolds_C = [kelvin_to_celsius(temp) for temp in Tcolds] 
+T_ref_C = kelvin_to_celsius(T_ref_K) # reference temperature in celsius
+# create offsets in uV
+# offset_list1 = [-200, -100, -50,-20,-10,-5,-2,-1,-0.5,-0.2,-0.1,-0.05,-0.02,-0.01, 
+#          0, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, 100, 200]
+offset_list1 = [-200, -100, -50, 0, 50, 100, 200]
+offset_list2 = offset_list1 
+offset_list3 = offset_list1
+offset_list4 = offset_list1
+ind_zero = len(offset_list1)//2 # get index of zero offset (center of list) 
+
+# round_and_print("Initial hot temperatures (Thot C): ", Thots_C, 7)
+# round_and_print("Initial cold temperatures(Tcold C): ", Tcolds_C, 7)
 
 
 
