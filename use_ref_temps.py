@@ -134,9 +134,9 @@ def seebeck_measurement(Thots_C, Tcolds_C, offs, plot=False):
     true_deltaV24 = [-1*(Seebeck_SRM3451(T_ref_K) - S_Cu)*delta_T for \
                      delta_T in dT_true]
     # note: true_deltaV is in uV
-    # introduce voltage offset for true_deltaV lists, convert to mV
-    meas_deltaV13 = [volt + offs[1]/1000 + offs[3]/1000 for volt in true_deltaV13]
-    meas_deltaV24 = [volt + offs[2]/1000 + offs[4]/1000 for volt in true_deltaV24]
+    # introduce voltage offset for true_deltaV lists
+    meas_deltaV13 = [volt + offs[1] + offs[3] for volt in true_deltaV13]
+    meas_deltaV24 = [volt + offs[2] + offs[4] for volt in true_deltaV24]
     meas_deltaV = [meas_deltaV24, meas_deltaV13]
     use_top_13_wires = False # choose between deltaV13 or deltaV24 for Seebeck voltage
     

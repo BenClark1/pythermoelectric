@@ -134,10 +134,10 @@ def seebeck_measurement(Thots_C, Tcolds_C, offs, plot=False):
     true_deltaV24 = [-1*(Seebeck_SRM3451(T_ref_K) - S_Cu)*delta_T for
                      delta_T in dT_true]
     # note: true_deltaV is in uV
-    # introduce voltage offset for true_deltaV lists, convert to mV
-    meas_deltaV13 = [volt + offs[1]/1000 + offs[3]/1000 for volt in true_deltaV13]
-    meas_deltaV24 = [volt + offs[2]/1000 + offs[4]/1000 for volt in true_deltaV24]
-    meas_deltaV = [meas_deltaV24, meas_deltaV13] # units: mV
+    # introduce voltage offset for true_deltaV lists
+    meas_deltaV13 = [volt + offs[1] + offs[3] for volt in true_deltaV13] # uV
+    meas_deltaV24 = [volt + offs[2] + offs[4] for volt in true_deltaV24] # uV
+    meas_deltaV = [meas_deltaV24, meas_deltaV13] # uV
     use_top_13_wires = False # choose between deltaV13 or deltaV24 for Seebeck voltage
     
     # get a dictionary with slope, intercept, and trendline y values
@@ -357,9 +357,9 @@ delta_V12_true = [temp_to_voltage(temp, T_ref_C) for temp in Thots_C] # mV
 delta_V34_true = [temp_to_voltage(temp, T_ref_C) for temp in Tcolds_C] # mV
 # add simulated voltage offsets, convert to mV
 delta_V12_meas = [volt + offs_inputs[1]/1000 + offs_inputs[2]/1000 
-                  for volt in delta_V12_true]
+                  for volt in delta_V12_true] # mV
 delta_V34_meas = [volt + offs_inputs[3]/1000 + offs_inputs[4]/1000 
-                  for volt in delta_V34_true]
+                  for volt in delta_V34_true] # mV
 
 # use polynomials to return to temperatures
 offs_Thots_C = [voltage_to_temp(volt, T_ref_C) for volt in delta_V12_meas]
@@ -370,23 +370,27 @@ meas_dT = [offs_Thots_C[ind]-offs_Tcolds_C[ind] for
 S_Cu = round(Seebeck_Cu(T_ref_K), 3) # units: uV/K
 S_Con = round(Seebeck_constantan(T_ref_K), 3) # units: uV/K
 true_deltaV13 = [-1*(Seebeck_SRM3451(T_ref_K) - S_Con)*delta_T for
-                 delta_T in dT_true]
+                 delta_T in dT_true] # uV
 true_deltaV24 = [-1*(Seebeck_SRM3451(T_ref_K) - S_Cu)*delta_T for
-                 delta_T in dT_true]
+                 delta_T in dT_true] # uV
 # note: true_deltaV is in uV
-# introduce voltage offset for true_deltaV lists, convert to mV
-meas_deltaV13 = [volt + offs_inputs[1]/1000 + offs_inputs[3]/1000 
-                 for volt in true_deltaV13]
-meas_deltaV24 = [volt + offs_inputs[2]/1000 + offs_inputs[4]/1000 
-                 for volt in true_deltaV24]
-meas_deltaV = [meas_deltaV24, meas_deltaV13]
+# introduce voltage offset for true_deltaV lists
+meas_deltaV13 = [volt + offs_inputs[1] + offs_inputs[3] 
+                 for volt in true_deltaV13] # uV
+meas_deltaV24 = [volt + offs_inputs[2] + offs_inputs[4] 
+                 for volt in true_deltaV24] # uV
+meas_deltaV = [meas_deltaV24, meas_deltaV13] # uV
 use_top_13_wires = False # choose between deltaV13 or deltaV24 for Seebeck voltage
+
+true_trend = calculate_trendline(dT_true, true_deltaV24)
+# print("True Seebeck: %f", )
+meas_trend = calculate_trendline(meas_dT, meas_deltaV[use_top_13_wires])
 
 plt.plot(dT_true, true_deltaV24, label="True Values")
 plt.plot(meas_dT, meas_deltaV[use_top_13_wires], label="Measured Values")
-plt.title('Volt vs. Temp Meas and True', pad=20)
-plt.xlabel(r'$True/Measured \Delta Temperature (K)$')
-plt.ylabel('Seebeck Voltgae (mV)')
+plt.title('Voltage vs. Temperature, Measured and True', pad=20)
+plt.xlabel(r'True/Measured $\Delta$ Temperature (K)')
+plt.ylabel('Seebeck Voltgae (uV)')
 plt.legend(bbox_to_anchor=(1.05,1))
 plt.grid()
 plt.show()
