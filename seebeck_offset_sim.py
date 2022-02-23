@@ -144,12 +144,13 @@ def seebeck_measurement(Thots_C, Tcolds_C, offs, plot=False):
     trend_info = calculate_trendline(meas_dT, meas_deltaV[use_top_13_wires])
     
     if plot:
-        plt.plot(meas_dT, meas_deltaV[use_top_13_wires], 'r.', 
-                 meas_dT, trend_info['trendline'], 'b')
+        plt.plot(meas_dT, meas_deltaV[use_top_13_wires], 'b.')
+        plt.plot(meas_dT, trend_info['trendline'], 'b')
         plt.title('Thermoelectric Votlage Produced by Seebeck Effect in Bi₂Te₃₊ₓ', 
                   pad=20)
-        plt.xlabel('Temperature Difference (K)')
-        plt.ylabel('Thermoelectric Voltage (uV)')
+        plt.xlabel('Measured $\Delta$ Temperature (K)')
+        plt.ylabel('Measured Seebeck Voltage (uV)')
+        plt.grid()
         plt.show()
         
     # is this correct? :
