@@ -132,7 +132,7 @@ def seebeck_measurement(Thots_C, Tcolds_C, offs, plot=False):
     true_deltaV13 = [-1*(Seebeck_SRM3451(T_ref_K) - S_Con)*delta_T for
                      delta_T in dT_true]
     true_deltaV24 = [-1*(Seebeck_SRM3451(T_ref_K) - S_Cu)*delta_T for
-                     delta_T in dT_true]
+                     delta_T in dT_true] #dT_true is a global variable
     # note: true_deltaV is in uV
     # introduce voltage offset for true_deltaV lists
     meas_deltaV13 = [volt + offs[1] + offs[3] for volt in true_deltaV13] # uV
@@ -153,7 +153,6 @@ def seebeck_measurement(Thots_C, Tcolds_C, offs, plot=False):
         plt.grid()
         plt.show()
         
-    # is this correct? :
     S_sample = -1*trend_info['slope'] + [S_Cu, S_Con][use_top_13_wires] # need to add S_const
     # print("\nFinal Seebeck Coefficient of the Sample: ")
     # print(round(S_sample, 9))
@@ -396,6 +395,34 @@ plt.legend(bbox_to_anchor=(1.05,1))
 plt.grid()
 plt.show()
 
+# seebeck_measurement(Thots_C, Tcolds_C, [0,0,0,0,0], plot=True)
+# plot meas_deltaV13 vs. meas_deltaV24 for various offsets
+
+offs = [0,0,0,0,0] # initialize new offsets specific to this graph
+S_Cu = round(Seebeck_Cu(T_ref_K), 3) # units: uV/K
+S_Con = round(Seebeck_constantan(T_ref_K), 3) # units: uV/K
+true_deltaV13 = [-1*(Seebeck_SRM3451(T_ref_K) - S_Con)*delta_T for
+                 delta_T in dT_true]
+true_deltaV24 = [-1*(Seebeck_SRM3451(T_ref_K) - S_Cu)*delta_T for
+                 delta_T in dT_true] #dT_true is a global variable
+# note: true_deltaV is in uV
+for ind in [1,3,5]:
+    offs[3] = offset_list3[ind]
+    for ind1 in [1,3,5]:
+        offs[1] = offset_list1[ind1]
+        # introduce voltage offset for true_deltaV lists
+        meas_deltaV13 = [volt + offs[1] + offs[3] for volt in true_deltaV13]
+        meas_deltaV24 = [volt + offs[2] + offs[4] for volt in true_deltaV24]
+        # meas_deltaV in uV
+        plt.plot(meas_deltaV24, meas_deltaV13, 
+                 label=r'$\delta V_{1}=%.2f uV$ \
+                     $\delta V_{3}=%.2f uV$' % (offs[1],offs[3]))
+plt.title('Copper Terminal Voltage vs. Constantan Terminal Voltage')
+plt.xlabel('$\Delta V_{24}$ measured')
+plt.ylabel('$\Delta V_{13}$ measured')
+plt.legend(bbox_to_anchor=(1.05,1))
+plt.grid()
+plt.show()
 
 
 

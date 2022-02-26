@@ -84,8 +84,8 @@ c = [c_neg, c_pos] # c[1] gives positive polynomial, c[0] gives negative
 T_ref_K = 80 # units: K
 T_ref_C = kelvin_to_celsius(T_ref_K) # reference temperature in celsius
 
-temps_in = np.linspace(-200, 100, 301) # units: C
-# temps_in = np.linspace(-200, -180, 301) # units: C
+# temps_in = np.linspace(-200, 100, 301) # units: C
+temps_in = np.linspace(-200, -180, 301) # units: C
 volts_out = [temp_to_voltage(temp, T_ref_C) for temp in temps_in]
 
 plt.plot(temps_in, volts_out)
@@ -96,8 +96,8 @@ plt.grid()
 plt.show()
 
 
-volts_in = np.linspace(-4, 20, 201) # units: mV
-# volts_in = np.linspace(-0.1, 0.3, 201) # units: mV
+# volts_in = np.linspace(-4, 20, 201) # units: mV
+volts_in = np.linspace(-0.1, 0.3, 201) # units: mV
 temps_out = [voltage_to_temp(volt, T_ref_C) for volt in volts_in]
 
 plt.plot(volts_in, temps_out)
