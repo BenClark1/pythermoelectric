@@ -84,28 +84,30 @@ c = [c_neg, c_pos] # c[1] gives positive polynomial, c[0] gives negative
 T_ref_K = 80 # units: K
 T_ref_C = kelvin_to_celsius(T_ref_K) # reference temperature in celsius
 
-# temps_in = np.linspace(-200, 100, 301) # units: C
-temps_in = np.linspace(-200, -180, 301) # units: C
-volts_out = [temp_to_voltage(temp, T_ref_C) for temp in temps_in]
+def plot_polynomials(temp_range, volt_range, Tref):
+    # temp_range units: C   volt_range units: mV   Tref units: C
+    temps_in = np.linspace(temp_range[0], temp_range[1], 301) # units: C
+    volts_out = [temp_to_voltage(temp, T_ref_C) for temp in temps_in]
+    
+    plt.plot(temps_in, volts_out)
+    plt.title('Temperature to Voltage Conversion Polynomial', pad=20)
+    plt.xlabel('Temperature (C)')
+    plt.ylabel('Voltage (mV)')
+    plt.grid()
+    plt.show()
+    
+    volts_in = np.linspace(volt_range[0], volt_range[1], 301) # units: mV
+    temps_out = [voltage_to_temp(volt, T_ref_C) for volt in volts_in]
+    
+    plt.plot(volts_in, temps_out)
+    plt.title('Voltage to Temperature Conversion Polynomial', pad=20)
+    plt.xlabel('Voltage (mV)')
+    plt.ylabel('Temperature (C)')
+    plt.grid()
+    plt.show()
 
-plt.plot(temps_in, volts_out)
-plt.title('Temperature to Voltage Conversion Polynomial', pad=20)
-plt.xlabel('Temperature (C)')
-plt.ylabel('Voltage (mV)')
-plt.grid()
-plt.show()
-
-
-# volts_in = np.linspace(-4, 20, 201) # units: mV
-volts_in = np.linspace(-0.1, 0.3, 201) # units: mV
-temps_out = [voltage_to_temp(volt, T_ref_C) for volt in volts_in]
-
-plt.plot(volts_in, temps_out)
-plt.title('Voltage to Temperature Conversion Polynomial', pad=20)
-plt.xlabel('Voltage (mV)')
-plt.ylabel('Temperature (C)')
-plt.grid()
-plt.show()
+plot_polynomials([-200, 100], [-4, 20], T_ref_C) # wide ranges
+plot_polynomials([-200, -180], [-0.1, 0.3], T_ref_C) # realistic ranges
 
 
 

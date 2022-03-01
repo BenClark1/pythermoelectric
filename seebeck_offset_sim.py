@@ -252,6 +252,9 @@ ind_zero = len(offset_list1)//2 # get index of zero offset (center of list)
 offs_inputs = [0, 0, 0, 0, 0]
 # for plotting true value
 true_seebeck = [Seebeck_SRM3451(T_ref_K)] * len(offset_list1)
+percent_error = 10
+minus_percent = [S*(1-(percent_error/100)) for S in true_seebeck]
+plus_percent = [S*(1+(percent_error/100)) for S in true_seebeck]
 
 # hold offsets 3 and 4 constant while varying 1 and 2
 for ind in range(len(offset_list2)):
@@ -268,7 +271,10 @@ for ind in range(len(offset_list2)):
              label=r'$\delta V2=%.2f uV$' % (round(offs_inputs[2], 2)))
     
 
-plt.plot(offset_list1, true_seebeck, 'r--')
+plt.plot(offset_list1, true_seebeck, 'r--', label="True Seebeck Coefficient")
+plt.plot(offset_list1, minus_percent, 'k:', 
+         label='%d'%(percent_error)+"% Error Bounds")
+plt.plot(offset_list1, plus_percent, 'k:')
 plt.title('Variation in Seebeck Coefficient due to Offsets in the Hot Thermocouple', pad=20)
 plt.xlabel(r'$\delta V1 (uV)$')
 plt.ylabel('Seebeck Coefficient (uV/K)')
@@ -292,7 +298,10 @@ for ind in range(len(offset_list4)):
     plt.plot(offset_list3, s_coeffs, 
              label=r'$\delta V4=%.2f uV$' % (round(offs_inputs[4], 2)))
     
-plt.plot(offset_list1, true_seebeck, 'r--')
+plt.plot(offset_list3, true_seebeck, 'r--', label="True Seebeck Coefficient")
+plt.plot(offset_list3, minus_percent, 'k:', 
+         label='%d'%(percent_error)+"% Error Bounds")
+plt.plot(offset_list3, plus_percent, 'k:')
 plt.title('Variation in Seebeck Coefficient due to Offsets in the Cold Thermocouple', pad=20)
 plt.xlabel(r'$\delta V3 (uV)$')
 plt.ylabel('Seebeck Coefficient (uV/K)')
@@ -316,7 +325,10 @@ for ind in range(len(offset_list3)):
     plt.plot(offset_list1, s_coeffs, 
              label=r'$\delta V3=%.2f uV$' % (round(offs_inputs[3], 2)))
     
-plt.plot(offset_list1, true_seebeck, 'r--')
+plt.plot(offset_list1, true_seebeck, 'r--', label="True Seebeck Coefficient")
+plt.plot(offset_list1, minus_percent, 'k:', 
+         label='%d'%(percent_error)+"% Error Bounds")
+plt.plot(offset_list1, plus_percent, 'k:')
 plt.title('Variation in Seebeck Coefficient due to Voltgae Offsets', pad=20)
 plt.xlabel(r'$\delta V1 (uV)$')
 plt.ylabel('Seebeck Coefficient (uV/K)')
@@ -340,7 +352,10 @@ for ind in range(len(offset_list4)):
     plt.plot(offset_list2, s_coeffs, 
              label=r'$\delta V4=%.2f uV$' % (round(offs_inputs[4], 2)))
     
-plt.plot(offset_list2, true_seebeck, 'r--')
+plt.plot(offset_list2, true_seebeck, 'r--', label="True Seebeck Coefficient")
+plt.plot(offset_list2, minus_percent, 'k:', 
+         label='%d'%(percent_error)+"% Error Bounds")
+plt.plot(offset_list2, plus_percent, 'k:')
 plt.title('Variation in Seebeck Coefficient due to Voltgae Offsets', pad=20)
 plt.xlabel(r'$\delta V2 (uV)$')
 plt.ylabel('Seebeck Coefficient (uV/K)')
@@ -349,80 +364,80 @@ plt.legend(bbox_to_anchor=(1.05,1))
 plt.grid()
 plt.show()
 
-
 # plot true/measured seebeck voltages vs. true/measured temperature differences
-offs_inputs = [0, 50, 50, 0, 0]
-# use conversion polynomials to get delta V values
-delta_V12_true = [temp_to_voltage(temp, T_ref_C) for temp in Thots_C] # mV
-delta_V34_true = [temp_to_voltage(temp, T_ref_C) for temp in Tcolds_C] # mV
-# add simulated voltage offsets, convert to mV
-delta_V12_meas = [volt + offs_inputs[1]/1000 + offs_inputs[2]/1000 
-                  for volt in delta_V12_true] # mV
-delta_V34_meas = [volt + offs_inputs[3]/1000 + offs_inputs[4]/1000 
-                  for volt in delta_V34_true] # mV
+if False: # only plot if needed
+    offs_inputs = [0, 50, 50, 0, 0]
+    # use conversion polynomials to get delta V values
+    delta_V12_true = [temp_to_voltage(temp, T_ref_C) for temp in Thots_C] # mV
+    delta_V34_true = [temp_to_voltage(temp, T_ref_C) for temp in Tcolds_C] # mV
+    # add simulated voltage offsets, convert to mV
+    delta_V12_meas = [volt + offs_inputs[1]/1000 + offs_inputs[2]/1000 
+                      for volt in delta_V12_true] # mV
+    delta_V34_meas = [volt + offs_inputs[3]/1000 + offs_inputs[4]/1000 
+                      for volt in delta_V34_true] # mV
+    
+    # use polynomials to return to temperatures
+    offs_Thots_C = [voltage_to_temp(volt, T_ref_C) for volt in delta_V12_meas]
+    offs_Tcolds_C = [voltage_to_temp(volt, T_ref_C) for volt in delta_V34_meas]
+    meas_dT = [offs_Thots_C[ind]-offs_Tcolds_C[ind] for
+          ind in range(len(offs_Thots_C))]
+    
+    S_Cu = round(Seebeck_Cu(T_ref_K), 3) # units: uV/K
+    S_Con = round(Seebeck_constantan(T_ref_K), 3) # units: uV/K
+    true_deltaV13 = [-1*(Seebeck_SRM3451(T_ref_K) - S_Con)*delta_T for
+                     delta_T in dT_true] # uV
+    true_deltaV24 = [-1*(Seebeck_SRM3451(T_ref_K) - S_Cu)*delta_T for
+                     delta_T in dT_true] # uV
+    # note: true_deltaV is in uV
+    # introduce voltage offset for true_deltaV lists
+    meas_deltaV13 = [volt + offs_inputs[1] + offs_inputs[3] 
+                     for volt in true_deltaV13] # uV
+    meas_deltaV24 = [volt + offs_inputs[2] + offs_inputs[4] 
+                     for volt in true_deltaV24] # uV
+    meas_deltaV = [meas_deltaV24, meas_deltaV13] # uV
+    use_top_13_wires = False # choose between deltaV13 or deltaV24 for Seebeck voltage
+    
+    true_trend = calculate_trendline(dT_true, true_deltaV24)
+    # print("True Seebeck: %f", )
+    meas_trend = calculate_trendline(meas_dT, meas_deltaV[use_top_13_wires])
+    
+    plt.plot(dT_true, true_deltaV24, label="True Values")
+    plt.plot(meas_dT, meas_deltaV[use_top_13_wires], label="Measured Values")
+    plt.title('Voltage vs. Temperature, Measured and True', pad=20)
+    plt.xlabel(r'True/Measured $\Delta$ Temperature (K)')
+    plt.ylabel('Seebeck Voltgae (uV)')
+    plt.legend(bbox_to_anchor=(1.05,1))
+    plt.grid()
+    plt.show()
 
-# use polynomials to return to temperatures
-offs_Thots_C = [voltage_to_temp(volt, T_ref_C) for volt in delta_V12_meas]
-offs_Tcolds_C = [voltage_to_temp(volt, T_ref_C) for volt in delta_V34_meas]
-meas_dT = [offs_Thots_C[ind]-offs_Tcolds_C[ind] for
-      ind in range(len(offs_Thots_C))]
-
-S_Cu = round(Seebeck_Cu(T_ref_K), 3) # units: uV/K
-S_Con = round(Seebeck_constantan(T_ref_K), 3) # units: uV/K
-true_deltaV13 = [-1*(Seebeck_SRM3451(T_ref_K) - S_Con)*delta_T for
-                 delta_T in dT_true] # uV
-true_deltaV24 = [-1*(Seebeck_SRM3451(T_ref_K) - S_Cu)*delta_T for
-                 delta_T in dT_true] # uV
-# note: true_deltaV is in uV
-# introduce voltage offset for true_deltaV lists
-meas_deltaV13 = [volt + offs_inputs[1] + offs_inputs[3] 
-                 for volt in true_deltaV13] # uV
-meas_deltaV24 = [volt + offs_inputs[2] + offs_inputs[4] 
-                 for volt in true_deltaV24] # uV
-meas_deltaV = [meas_deltaV24, meas_deltaV13] # uV
-use_top_13_wires = False # choose between deltaV13 or deltaV24 for Seebeck voltage
-
-true_trend = calculate_trendline(dT_true, true_deltaV24)
-# print("True Seebeck: %f", )
-meas_trend = calculate_trendline(meas_dT, meas_deltaV[use_top_13_wires])
-
-plt.plot(dT_true, true_deltaV24, label="True Values")
-plt.plot(meas_dT, meas_deltaV[use_top_13_wires], label="Measured Values")
-plt.title('Voltage vs. Temperature, Measured and True', pad=20)
-plt.xlabel(r'True/Measured $\Delta$ Temperature (K)')
-plt.ylabel('Seebeck Voltgae (uV)')
-plt.legend(bbox_to_anchor=(1.05,1))
-plt.grid()
-plt.show()
-
-# seebeck_measurement(Thots_C, Tcolds_C, [0,0,0,0,0], plot=True)
 # plot meas_deltaV13 vs. meas_deltaV24 for various offsets
+if False: # only plot if needed
+    offs = [0,0,0,0,0] # initialize new offsets specific to this graph
+    S_Cu = round(Seebeck_Cu(T_ref_K), 3) # units: uV/K
+    S_Con = round(Seebeck_constantan(T_ref_K), 3) # units: uV/K
+    true_deltaV13 = [-1*(Seebeck_SRM3451(T_ref_K) - S_Con)*delta_T for
+                     delta_T in dT_true]
+    true_deltaV24 = [-1*(Seebeck_SRM3451(T_ref_K) - S_Cu)*delta_T for
+                     delta_T in dT_true] #dT_true is a global variable
+    # note: true_deltaV is in uV
+    for ind in [1,3,5]:
+        offs[3] = offset_list3[ind]
+        for ind1 in [1,3,5]:
+            offs[1] = offset_list1[ind1]
+            # introduce voltage offset for true_deltaV lists
+            meas_deltaV13 = [volt + offs[1] + offs[3] for volt in true_deltaV13]
+            meas_deltaV24 = [volt + offs[2] + offs[4] for volt in true_deltaV24]
+            # meas_deltaV in uV
+            plt.plot(meas_deltaV24, meas_deltaV13, 
+                     label=r'$\delta V_{1}=%.2f uV$ \
+                         $\delta V_{3}=%.2f uV$' % (offs[1],offs[3]))
+    plt.title('Copper Terminal Voltage vs. Constantan Terminal Voltage')
+    plt.xlabel('$\Delta V_{24}$ measured')
+    plt.ylabel('$\Delta V_{13}$ measured')
+    plt.legend(bbox_to_anchor=(1.05,1))
+    plt.grid()
+    plt.show()
 
-offs = [0,0,0,0,0] # initialize new offsets specific to this graph
-S_Cu = round(Seebeck_Cu(T_ref_K), 3) # units: uV/K
-S_Con = round(Seebeck_constantan(T_ref_K), 3) # units: uV/K
-true_deltaV13 = [-1*(Seebeck_SRM3451(T_ref_K) - S_Con)*delta_T for
-                 delta_T in dT_true]
-true_deltaV24 = [-1*(Seebeck_SRM3451(T_ref_K) - S_Cu)*delta_T for
-                 delta_T in dT_true] #dT_true is a global variable
-# note: true_deltaV is in uV
-for ind in [1,3,5]:
-    offs[3] = offset_list3[ind]
-    for ind1 in [1,3,5]:
-        offs[1] = offset_list1[ind1]
-        # introduce voltage offset for true_deltaV lists
-        meas_deltaV13 = [volt + offs[1] + offs[3] for volt in true_deltaV13]
-        meas_deltaV24 = [volt + offs[2] + offs[4] for volt in true_deltaV24]
-        # meas_deltaV in uV
-        plt.plot(meas_deltaV24, meas_deltaV13, 
-                 label=r'$\delta V_{1}=%.2f uV$ \
-                     $\delta V_{3}=%.2f uV$' % (offs[1],offs[3]))
-plt.title('Copper Terminal Voltage vs. Constantan Terminal Voltage')
-plt.xlabel('$\Delta V_{24}$ measured')
-plt.ylabel('$\Delta V_{13}$ measured')
-plt.legend(bbox_to_anchor=(1.05,1))
-plt.grid()
-plt.show()
 
 
 
