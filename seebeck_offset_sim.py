@@ -229,6 +229,7 @@ dT_true = [(pwr * dx)/(kappa * area) for pwr in powers] #units: K
     # dT_true/dx (slope)  T(x) = (dT_true/dx)x + T_ref_K
 # reference temperature at the base of the sample
 T_ref_K = 80 # units: K
+# T_ref_K = 293 # units: K
 # get hot and cold temperatures and convert to celsius
 Thots = [(delta_T/dx)*x_hot + T_ref_K for delta_T in dT_true]
 Tcolds = [(delta_T/dx)*x_cold + T_ref_K for delta_T in dT_true] 
@@ -252,7 +253,7 @@ ind_zero = len(offset_list1)//2 # get index of zero offset (center of list)
 offs_inputs = [0, 0, 0, 0, 0]
 # for plotting true value
 true_seebeck = [Seebeck_SRM3451(T_ref_K)] * len(offset_list1)
-percent_error = 10
+percent_error = 5
 minus_percent = [S*(1-(percent_error/100)) for S in true_seebeck]
 plus_percent = [S*(1+(percent_error/100)) for S in true_seebeck]
 
@@ -411,7 +412,7 @@ if False: # only plot if needed
     plt.show()
 
 # plot meas_deltaV13 vs. meas_deltaV24 for various offsets
-if False: # only plot if needed
+if True: # only plot if needed
     offs = [0,0,0,0,0] # initialize new offsets specific to this graph
     S_Cu = round(Seebeck_Cu(T_ref_K), 3) # units: uV/K
     S_Con = round(Seebeck_constantan(T_ref_K), 3) # units: uV/K

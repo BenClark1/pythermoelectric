@@ -99,10 +99,28 @@ def plot_polynomials(temp_range, volt_range, Tref):
     volts_in = np.linspace(volt_range[0], volt_range[1], 301) # units: mV
     temps_out = [voltage_to_temp(volt, T_ref_C) for volt in volts_in]
     
-    plt.plot(volts_in, temps_out)
+    volt_diff = 0.05 # mV
+    cold_start = 0
+    cold_volts = [cold_start, cold_start + volt_diff]
+    hot_start = 0.2
+    hot_volts = [hot_start, hot_start + volt_diff]
+    cold1 = voltage_to_temp(cold_volts[0], T_ref_C)
+    cold2 = voltage_to_temp(cold_volts[1], T_ref_C)
+    hot1 = voltage_to_temp(hot_volts[0], T_ref_C)
+    hot2 = voltage_to_temp(hot_volts[1], T_ref_C)
+    
+    plt.plot(volts_in, temps_out, 'k')
+    plt.plot(cold_volts, [cold1, cold2], 'bo',
+             label='Temp diff: %.2f C' % (cold2-cold1))
+    plt.plot(hot_volts, [hot1, hot2], 'ro',
+             label='Temp diff: %.2f C' % (hot2-hot1))
+    # plt.axvline(0, -195, -180, color='r')
+    # test = plt.axvline(x=.2, ymin=-195, ymax=-180)
+    # plt.plot(test)
     plt.title('Voltage to Temperature Conversion Polynomial', pad=20)
     plt.xlabel('Voltage (mV)')
     plt.ylabel('Temperature (C)')
+    plt.legend()
     plt.grid()
     plt.show()
 
