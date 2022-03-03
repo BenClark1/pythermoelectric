@@ -106,7 +106,7 @@ def Seebeck_constantan(T): # units of T: K
     # subtract Cu/Con Seebeck value from copper Seebeck to get Con Seebeck
     return Seebeck_Cu(T) - S_Cu_Con
 
-def seebeck_measurement(Thots_C, Tcolds_C, offs, plot=False):
+def seebeck_measurement(Thots_C, Tcolds_C, offs, plot=False, print_vals=False):
     # offs: a list of 5 offsets, first term must be zero
         # index of offs corresponds to offset location 
     # use conversion polynomials to get delta V values
@@ -117,7 +117,11 @@ def seebeck_measurement(Thots_C, Tcolds_C, offs, plot=False):
     delta_V34_meas = [volt + offs[3]/1000 + offs[4]/1000 for volt in delta_V34_true]
     # round_and_print("Voltage across hot thermocouple: ", delta_V12_true, 7)
     # round_and_print("Voltage across cold thermocouple: ", delta_V34_true, 7)
-    
+    if print_vals: # print two thermocouple voltages to see realistic example
+        print("true hot voltage: ", round(delta_V12_true[9], 5))
+        print("offset hot voltage: ", round(delta_V12_meas[9], 5))
+        print("true cold voltage: ", round(delta_V34_true[9], 5))
+        print("offset cold voltage: ", round(delta_V34_meas[9], 5))
     # use polynomials to return to temperatures
     offs_Thots_C = [voltage_to_temp(volt, T_ref_C) for volt in delta_V12_meas]
     offs_Tcolds_C = [voltage_to_temp(volt, T_ref_C) for volt in delta_V34_meas]
@@ -439,7 +443,9 @@ if True: # only plot if needed
     plt.grid()
     plt.show()
 
-
+# print two thermocouple voltage values to calculate a realistic example
+offs = [0, 50, 50, 0, 0]
+seebeck_measurement(Thots_C, Tcolds_C, offs, plot=True, print_vals=True)
 
 
 
