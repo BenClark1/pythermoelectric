@@ -81,37 +81,38 @@ c_pos = [0.0,
 -7.293422e-7]
 c = [c_neg, c_pos] # c[1] gives positive polynomial, c[0] gives negative
 
-def invoke_plot_params():
+def invoke_plot_params(filename="unnamed_1200dpi"):
     plt.tick_params(axis='both',which='major', direction = 'in', 
-                    top = 1, right = 1, length=6,width=1,labelsize=12)
+                    top = 1, right = 1, length=6,width=1,labelsize=16)
     plt.tick_params(axis='both',which='minor', direction = 'in', 
-                    top = 1, right = 1, length=2,width=1,labelsize=12)
+                    top = 1, right = 1, length=2,width=1,labelsize=16)
     plt.grid()
+    # plt.savefig("plot_img_1200dpi/"+filename, dpi=1200, bbox_inches='tight')
     plt.show()
 
 def plot_polynomials(temp_range, volt_range, Tref):
     # temp_range units: C   volt_range units: mV   Tref units: C
     temps_in = np.linspace(temp_range[0], temp_range[1], 301) # units: C
-    volts_out = [temp_to_voltage(temp, T_ref_C) for temp in temps_in]
+    volts_out = [temp_to_voltage(temp, Tref_C) for temp in temps_in]
     
     plt.plot(temps_in, volts_out)
     plt.title('Temperature to Voltage Conversion Polynomial', pad=20)
     plt.xlabel('Temperature (C)')
     plt.ylabel('Voltage (mV)')
-    invoke_plot_params()
+    invoke_plot_params("temp_to_voltage")
     
     volts_in = np.linspace(volt_range[0], volt_range[1], 301) # units: mV
-    temps_out = [voltage_to_temp(volt, T_ref_C) for volt in volts_in]
+    temps_out = [voltage_to_temp(volt, Tref_C) for volt in volts_in]
     
     volt_diff = 0.05 # mV
     cold_start = 0.03153 # mV
     cold_volts = [cold_start, cold_start + volt_diff]
     hot_start = 0.06355 # mV
     hot_volts = [hot_start, hot_start + volt_diff]
-    cold1 = voltage_to_temp(cold_volts[0], T_ref_C)
-    cold2 = voltage_to_temp(cold_volts[1], T_ref_C)
-    hot1 = voltage_to_temp(hot_volts[0], T_ref_C)
-    hot2 = voltage_to_temp(hot_volts[1], T_ref_C)
+    cold1 = voltage_to_temp(cold_volts[0], Tref_C)
+    cold2 = voltage_to_temp(cold_volts[1], Tref_C)
+    hot1 = voltage_to_temp(hot_volts[0], Tref_C)
+    hot2 = voltage_to_temp(hot_volts[1], Tref_C)
     # volts = [0.00697,
     #         0.10697,
     #         0.06355,
@@ -122,7 +123,7 @@ def plot_polynomials(temp_range, volt_range, Tref):
     #         0.03153]
     # temps = []
     # for volt in volts:
-    #     temps.append(voltage_to_temp(volt, T_ref_C))
+    #     temps.append(voltage_to_temp(volt, Tref_C))
     
     plt.plot(volts_in, temps_out, 'k')
     plt.plot(cold_volts, [cold1, cold2], 'bo',
@@ -136,16 +137,18 @@ def plot_polynomials(temp_range, volt_range, Tref):
     # plt.axvline(0, -195, -180, color='r') # for plotting horizontal lines
     # test = plt.axvline(x=.2, ymin=-195, ymax=-180)
     # plt.plot(test)
-    plt.title('Voltage to Temperature Conversion Polynomial', pad=20)
-    plt.xlabel('Voltage (mV)')
-    plt.ylabel('Temperature (C)')
+    plt.title("Voltage to Temperature Conversion Polynomial, Tref=%d K" %
+              (T_ref_K), pad=20)
+    plt.xlabel('Voltage (mV)', fontsize=font_size)
+    plt.ylabel('Temperature (C)', fontsize=font_size)
     plt.legend(bbox_to_anchor=(1.05,1))
-    invoke_plot_params()
+    invoke_plot_params("voltage_to_temp")
 
+font_size = 16
 T_ref_K = 80 # units: K
-T_ref_C = kelvin_to_celsius(T_ref_K) # reference temperature in celsius
-plot_polynomials([-200, 100], [-4, 20], T_ref_C) # wide ranges
-plot_polynomials([-200, -180], [-0.1, 0.3], T_ref_C) # realistic ranges
+Tref_C = kelvin_to_celsius(T_ref_K) # reference temperature in celsius
+plot_polynomials([-200, 100], [-4, 20], Tref_C) # wide ranges
+plot_polynomials([-200, -180], [-0.1, 0.3], Tref_C) # realistic ranges
 
 
 
