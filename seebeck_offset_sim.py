@@ -368,9 +368,12 @@ for ind in range(len(offset_list2)):
     
 
 plt.plot(offset_list1, true_seebeck, 'r--', label="True Seebeck Coefficient")
-plt.plot(offset_list1, minus_percent, 'k:', 
-         label='%d'%(percent_error)+"% Error Bounds")
-plt.plot(offset_list1, plus_percent, 'k:')
+# plt.plot(offset_list1, minus_percent, 'k:', 
+#          label='%d'%(percent_error)+"% Error Bounds")
+# plt.plot(offset_list1, plus_percent, 'k:')
+plt.fill_between(offset_list1, minus_percent, plus_percent, color='gray', 
+                 alpha=.3, label="$\u00B1$%d"%(percent_error)+
+                 "% Typical Experimental\nUncertainty")
 plt.title("Offsets in Hot Thermocouple Only, Tref=%d K"%(T_ref_K), pad=20)
 plt.xlabel('$\delta$V1 ($\mu$V)', fontsize=font_size)
 plt.ylabel('Seebeck Coefficient ($\mu$V/K)', fontsize=font_size)
@@ -396,9 +399,12 @@ for ind in range(len(offset_list4)):
              label=r'$\delta V4=%.2f uV$' % (round(offs_inputs[4], 2)))
     
 plt.plot(offset_list3, true_seebeck, 'r--', label="True Seebeck Coefficient")
-plt.plot(offset_list3, minus_percent, 'k:', 
-         label='%d'%(percent_error)+"% Error Bounds")
-plt.plot(offset_list3, plus_percent, 'k:')
+# plt.plot(offset_list3, minus_percent, 'k:', 
+#          label='%d'%(percent_error)+"% Error Bounds")
+# plt.plot(offset_list3, plus_percent, 'k:')
+plt.fill_between(offset_list3, minus_percent, plus_percent, color='gray', 
+                 alpha=.3, label="$\u00B1$%d"%(percent_error)+
+                 "% Typical Experimental\nUncertainty")
 plt.title("Offsets in Cold Thermocouple Only, Tref=%d K"%(T_ref_K), pad=20)
 plt.xlabel('$\delta$V3 ($\mu$V)', fontsize=font_size)
 plt.ylabel('Seebeck Coefficient ($\mu$V/K)', fontsize=font_size)
@@ -424,9 +430,12 @@ for ind in range(len(offset_list3)):
              label=r'$\delta V3=%.2f uV$' % (round(offs_inputs[3], 2)))
     
 plt.plot(offset_list1, true_seebeck, 'r--', label="True Seebeck Coefficient")
-plt.plot(offset_list1, minus_percent, 'k:', 
-         label='%d'%(percent_error)+"% Error Bounds")
-plt.plot(offset_list1, plus_percent, 'k:')
+# plt.plot(offset_list1, minus_percent, 'k:', 
+#          label='%d'%(percent_error)+"% Error Bounds")
+# plt.plot(offset_list1, plus_percent, 'k:')
+plt.fill_between(offset_list1, minus_percent, plus_percent, color='gray', 
+                 alpha=.3, label="$\u00B1$%d"%(percent_error)+
+                 "% Typical Experimental\nUncertainty")
 plt.title("Offsets in Constantan Wires Only, Tref=%d K"%(T_ref_K), pad=20)
 plt.xlabel('$\delta$V1 ($\mu$V)', fontsize=font_size)
 plt.ylabel('Seebeck Coefficient ($\mu$V/K)', fontsize=font_size)
@@ -452,9 +461,12 @@ for ind in range(len(offset_list4)):
              label=r'$\delta V4=%.2f uV$' % (round(offs_inputs[4], 2)))
     
 plt.plot(offset_list2, true_seebeck, 'r--', label="True Seebeck Coefficient")
-plt.plot(offset_list2, minus_percent, 'k:', 
-         label='%d'%(percent_error)+"% Error Bounds")
-plt.plot(offset_list2, plus_percent, 'k:')
+# plt.plot(offset_list2, minus_percent, 'k:', 
+#          label='%d'%(percent_error)+"% Error Bounds")
+# plt.plot(offset_list2, plus_percent, 'k:')
+plt.fill_between(offset_list2, minus_percent, plus_percent, color='gray', 
+                 alpha=.3, label="$\u00B1$%d"%(percent_error)+
+                 "% Typical Experimental\nUncertainty")
 plt.title("Offsets in Copper Wires Only, Tref=%d K"%(T_ref_K), pad=20)
 plt.xlabel('$\delta$V2 ($\mu$V)', fontsize=font_size)
 plt.ylabel('Seebeck Coefficient ($\mu$V/K)', fontsize=font_size)
