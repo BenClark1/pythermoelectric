@@ -272,27 +272,12 @@ def plot_polynomials(temp_range, volt_range, Tref):
     cold2 = voltage_to_temp(cold_volts[1], Tref_C)
     hot1 = voltage_to_temp(hot_volts[0], Tref_C)
     hot2 = voltage_to_temp(hot_volts[1], Tref_C)
-    # volts = [0.00697,
-    #         0.10697,
-    #         0.06355,
-    #         0.16355,
-    #         0.00348,
-    #         0.00348,
-    #         0.03153,
-    #         0.03153]
-    # temps = []
-    # for volt in volts:
-    #     temps.append(voltage_to_temp(volt, T_ref_C))
     
     plt.plot(volts_in, temps_out, 'k')
     plt.plot(cold_volts, [cold1, cold2], 'bo',
               label='Temp diff: %.3f C' % (cold2-cold1))
     plt.plot(hot_volts, [hot1, hot2], 'ro',
               label='Temp diff: %.3f C' % (hot2-hot1))
-    # plt.plot(volts[0:4], temps[0:4], 'ro')
-    # plt.plot(volts[0:4], temps[0:4], 'ro')
-    # plt.plot(volts[4:], temps[4:], 'bo')
-    # plt.plot(volts[4:], temps[4:], 'bo')
     # plt.axvline(0, -195, -180, color='r') # for plotting horizontal lines
     # test = plt.axvline(x=.2, ymin=-195, ymax=-180)
     # plt.plot(test)
@@ -329,7 +314,7 @@ Thots_C = [kelvin_to_celsius(temp) for temp in Thots]
 Tcolds_C = [kelvin_to_celsius(temp) for temp in Tcolds] 
 Tref_C = kelvin_to_celsius(T_ref_K) # reference temperature in celsius
 # create offsets in uV
-# offset_list1 = [-200, -100, -50,-20,-10,-5,-2,-1,-0.5,-0.2,-0.1,-0.05,-0.02,-0.01, 
+# offset_list1 = [-200,-100,-50,-20,-10,-5,-2,-1,-0.5,-0.2,-0.1,-0.05,-0.02,-0.01, 
 #          0, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, 100, 200]
 main_offset_list = [-200, -100, -50, 0, 50, 100, 200]
 offset_list1 = main_offset_list
@@ -338,10 +323,7 @@ offset_list3 = main_offset_list
 offset_list4 = main_offset_list
 ind_zero = len(offset_list1)//2 # get index of zero offset (center of list) 
 
-# round_and_print("Initial hot temperatures (Thot C): ", Thots_C, 7)
-# round_and_print("Initial cold temperatures(Tcold C): ", Tcolds_C, 7)
 font_size = 16 
-
 
 offs_inputs = [0, 0, 0, 0, 0]
 num_points = 301
@@ -360,9 +342,6 @@ for ind in range(len(offset_list2)):
         offs_inputs[1] = offset1
         s_coeffs.append(seebeck_measurement(Thots_C, Tcolds_C, offs_inputs))
     
-    # plt.plot(offset_list1, s_coeffs, color=(ind/len(offset_list2),
-    #                                  ind*0.5/len(offset_list2),
-    #                                  ind*0.1/len(offset_list2)))
     plt.plot(offset_list1, s_coeffs, 
              label=r'$\delta V2=%.2f uV$' % (round(offs_inputs[2], 2)))
     
@@ -392,16 +371,11 @@ for ind in range(len(offset_list4)):
         offs_inputs[3] = offset3
         s_coeffs.append(seebeck_measurement(Thots_C, Tcolds_C, offs_inputs))
     
-    # plt.plot(offset_list3, s_coeffs, color=(ind/len(offset_list4),
-    #                                  ind*0.5/len(offset_list4),
-    #                                  ind*0.1/len(offset_list4)))
     plt.plot(offset_list3, s_coeffs, 
              label=r'$\delta V4=%.2f uV$' % (round(offs_inputs[4], 2)))
     
 plt.plot(offset_list3, true_seebeck, 'r--', label="True Seebeck Coefficient")
-# plt.plot(offset_list3, minus_percent, 'k:', 
-#          label='%d'%(percent_error)+"% Error Bounds")
-# plt.plot(offset_list3, plus_percent, 'k:')
+
 plt.fill_between(offset_list3, minus_percent, plus_percent, color='gray', 
                  alpha=.3, label="$\u00B1$%d"%(percent_error)+
                  "% Typical Experimental\nUncertainty")
@@ -409,7 +383,6 @@ plt.title("Offsets in Cold Thermocouple Only, Tref=%d K"%(T_ref_K), pad=20)
 plt.xlabel('$\delta$V3 ($\mu$V)', fontsize=font_size)
 plt.ylabel('Seebeck Coefficient ($\mu$V/K)', fontsize=font_size)
 plt.legend(bbox_to_anchor=(1.05,1))
-# plt.autoscale(enable=False, axis='y')
 invoke_plot_params("S_vs_dV3_dV4")
 
 # hold offsets 2 and 4 constant while varying 1 and 3------------ FIGURE 3
@@ -422,17 +395,12 @@ for ind in range(len(offset_list3)):
     for offset1 in offset_list1:
         offs_inputs[1] = offset1
         s_coeffs.append(seebeck_measurement(Thots_C, Tcolds_C, offs_inputs))
-    
-    # plt.plot(offset_list1, s_coeffs, color=(ind/len(offset_list3),
-    #                                  ind*0.5/len(offset_list3),
-    #                                  ind*0.1/len(offset_list3)))
+
     plt.plot(offset_list1, s_coeffs, 
              label=r'$\delta V3=%.2f uV$' % (round(offs_inputs[3], 2)))
     
 plt.plot(offset_list1, true_seebeck, 'r--', label="True Seebeck Coefficient")
-# plt.plot(offset_list1, minus_percent, 'k:', 
-#          label='%d'%(percent_error)+"% Error Bounds")
-# plt.plot(offset_list1, plus_percent, 'k:')
+
 plt.fill_between(offset_list1, minus_percent, plus_percent, color='gray', 
                  alpha=.3, label="$\u00B1$%d"%(percent_error)+
                  "% Typical Experimental\nUncertainty")
@@ -440,7 +408,6 @@ plt.title("Offsets in Constantan Wires Only, Tref=%d K"%(T_ref_K), pad=20)
 plt.xlabel('$\delta$V1 ($\mu$V)', fontsize=font_size)
 plt.ylabel('Seebeck Coefficient ($\mu$V/K)', fontsize=font_size)
 plt.legend(bbox_to_anchor=(1.05,1))
-# plt.autoscale(enable=False, axis='y')
 invoke_plot_params("S_vs_dV1_dV3")
 
 # hold offsets 1 and 3 constant while varying 2 and 4------------ FIGURE 4
@@ -454,16 +421,11 @@ for ind in range(len(offset_list4)):
         offs_inputs[2] = offset2
         s_coeffs.append(seebeck_measurement(Thots_C, Tcolds_C, offs_inputs))
     
-    # plt.plot(offset_list1, s_coeffs, color=(ind/len(offset_list3),
-    #                                  ind*0.5/len(offset_list3),
-    #                                  ind*0.1/len(offset_list3)))
     plt.plot(offset_list2, s_coeffs, 
              label=r'$\delta V4=%.2f uV$' % (round(offs_inputs[4], 2)))
     
 plt.plot(offset_list2, true_seebeck, 'r--', label="True Seebeck Coefficient")
-# plt.plot(offset_list2, minus_percent, 'k:', 
-#          label='%d'%(percent_error)+"% Error Bounds")
-# plt.plot(offset_list2, plus_percent, 'k:')
+
 plt.fill_between(offset_list2, minus_percent, plus_percent, color='gray', 
                  alpha=.3, label="$\u00B1$%d"%(percent_error)+
                  "% Typical Experimental\nUncertainty")
@@ -471,7 +433,6 @@ plt.title("Offsets in Copper Wires Only, Tref=%d K"%(T_ref_K), pad=20)
 plt.xlabel('$\delta$V2 ($\mu$V)', fontsize=font_size)
 plt.ylabel('Seebeck Coefficient ($\mu$V/K)', fontsize=font_size)
 plt.legend(bbox_to_anchor=(1.05,1))
-# plt.autoscale(enable=False, axis='y')
 invoke_plot_params("S_vs_dV2_dV4")
 
 # plot true/measured seebeck voltages vs. true/measured temperature differences
@@ -508,7 +469,6 @@ if False: # only plot if needed
     use_top_13_wires = False # choose between deltaV13 or deltaV24 for Seebeck voltage
     
     true_trend = calculate_trendline(dT_true, true_deltaV24)
-    # print("True Seebeck: %f", )
     meas_trend = calculate_trendline(meas_dT, meas_deltaV[use_top_13_wires])
     
     plt.plot(dT_true, true_deltaV24, label="True Values")
