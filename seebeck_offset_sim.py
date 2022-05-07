@@ -2,6 +2,10 @@
 """
 Created on Tue Oct 12 21:15:09 2021
 
+Simulated measurement of Seebeck Coefficient including affects of spurious
+voltage offsets. Capable of simulating type T thermocouples with NIST SRM3451
+(Bi2Te3+x) or type R thermocouples with NIST SRM3452 (Si80Ge20)
+
 @author: benja
 """
 import matplotlib.pyplot as plt
@@ -14,7 +18,7 @@ import thermocouple_coefficients as tcc
 # functions ----------------------------------------
 def temp_to_voltage(temp_in, T_ref): 
     # convert temperature (C) to EMF (mV) type T thermocouple
-    if thermocouple_type == 'type T':
+    if THERMOCOUPLE_TYPE == 'type T':
         # type T thermocouple: only for -270C <= temp_in <= 400C
         emf_pre = 0 # preliminary voltage before subtracting out emf_ref
         if temp_in > 0 and temp_in <= 400:
@@ -37,60 +41,106 @@ def temp_to_voltage(temp_in, T_ref):
             raise ValueError('temperature cannot be converted, out of range')
                 
                 
-    elif thermocouple_type == 'type R':
-        # type R thermocouple: only for -50<= temp_in <= 1768.1C
+    elif THERMOCOUPLE_TYPE == 'type R':
+        # type R thermocouple: only for -50C <= temp_in <= 1768.1C
         emf_pre = 0 # preliminary voltage before subtracting out emf_ref
-        if temp_in >= -50 and temp_in <= 1064.18:
+        if temp_in >= -50 and temp_in <= 1064.18:  # range 1 (r1)
             for ind in range(len(tcc.b_r1_typeR)):
                 emf_pre += tcc.b_r1_typeR[ind]*(temp_in**ind)
-        elif temp_in > 1064.18 and temp_in <= 1664.5:
+        elif temp_in > 1064.18 and temp_in <= 1664.5:  # range 2 (r2)
             for ind in range(len(tcc.b_r2_typeR)):
                 emf_pre += tcc.b_r2_typeR[ind]*(temp_in**ind)
-        elif temp_in > 1664.5 and temp_in <= 1768.1:
+        elif temp_in > 1664.5 and temp_in <= 1768.1:  # range 3 (r3)
             for ind in range(len(tcc.b_r3_typeR)):
                emf_pre += tcc.b_r3_typeR[ind]*(temp_in**ind)
         else:
             raise ValueError('temperature cannot be converted, out of range')
             
         emf_ref = 0
-        if T_ref >= -50 and T_ref <= 1064.18: 
+        if T_ref >= -50 and T_ref <= 1064.18:   # range 1 (r1)
             for ind in range(len(tcc.b_r1_typeR)):
                 emf_ref += tcc.b_r1_typeR[ind]*(T_ref**ind)
         elif T_ref > 1064.18 and T_ref <= 1664.5:
-            for ind in range(len(tcc.b_r2_typeR)):
+            for ind in range(len(tcc.b_r2_typeR)):  # range 2 (r2)
                 emf_ref += tcc.b_r2_typeR[ind]*(T_ref**ind)
         elif T_ref > 1664.5 and T_ref <= 1768.1:
-            for ind in range(len(tcc.b_r3_typeR)):
+            for ind in range(len(tcc.b_r3_typeR)):  # range 3 (r3)
                 emf_ref += tcc.b_r3_typeR[ind]*(T_ref**ind)
         else:
             raise ValueError('temperature cannot be converted, out of range')
             
         
     else:
-        raise ValueError('global variable thermocouple_type incorrect')
+        raise ValueError('global constant THERMOCOUPLE_TYPE is incorrect')
         
         
     return emf_pre - emf_ref # returns emf in millivolts (mV)
 
 def voltage_to_temp(emf_measured, T_ref):
     # convert EMF (mV) to temperature (C) for type T thermocouple
-    # only for -5.603mV <= emf_measured <= 20.872mV
-    temp_out = 0
-    emf_ref = 0 # compute EMF for reference temperature using polynomial
-    if T_ref >= 0:
-        for ind in range(len(tcc.b_pos_typeT)):
-            emf_ref += tcc.b_pos_typeT[ind]*(T_ref**ind)
+    if THERMOCOUPLE_TYPE == 'type T':
+    # type T thermocouple: only for -5.603mV <= emf_measured <= 20.872mV
+        temp_out = 0
+        emf_ref = 0 # compute EMF for reference temperature using polynomial
+        if T_ref >= 0:
+            for ind in range(len(tcc.b_pos_typeT)):
+                emf_ref += tcc.b_pos_typeT[ind]*(T_ref**ind)
+        else:
+            for ind in range(len(tcc.b_neg_typeT)):
+                emf_ref += tcc.b_neg_typeT[ind]*(T_ref**ind)
+                
+        final_emf = emf_measured + emf_ref
+        if final_emf >= 0:
+            for ind in range(len(tcc.c_pos_typeT)):
+                temp_out += tcc.c_pos_typeT[ind]*(final_emf**ind)
+        else:
+            for ind in range(len(tcc.c_neg_typeT)):
+                temp_out += tcc.c_neg_typeT[ind]*(final_emf**ind)
+                
+                
+    elif THERMOCOUPLE_TYPE == 'type R':
+        # type R thermocouple: only for -0.226mV to 21.103mV
+        temp_out = 0
+        emf_ref = 0
+        if T_ref >= -50 and T_ref <= 1064.18:   # range 1 (r1)
+            for ind in range(len(tcc.b_r1_typeR)):
+                emf_ref += tcc.b_r1_typeR[ind]*(T_ref**ind)
+        elif T_ref > 1064.18 and T_ref <= 1664.5:
+            for ind in range(len(tcc.b_r2_typeR)):  # range 2 (r2)
+                emf_ref += tcc.b_r2_typeR[ind]*(T_ref**ind)
+        elif T_ref > 1664.5 and T_ref <= 1768.1:
+            for ind in range(len(tcc.b_r3_typeR)):  # range 3 (r3)
+                emf_ref += tcc.b_r3_typeR[ind]*(T_ref**ind)
+        else:
+            raise ValueError(
+                'reference temperature out of range for type R thermocouple')
+
+        final_emf = emf_measured + emf_ref
+        
+        if final_emf >= -0.226 and final_emf <= 1.923:  # range 1 (r1)
+            for ind in range(len(tcc.c_r1_typeR)):
+                temp_out += tcc.c_r1_typeR[ind]*(final_emf**ind)
+        elif final_emf > 1.923 and final_emf <= 13.228:  # range 2 (r2)
+            for ind in range(len(tcc.c_r2_typeR)):
+                temp_out += tcc.c_r2_typeR[ind]*(final_emf**ind)
+        elif final_emf > 11.361 and final_emf <= 19.739:  # range 3 (r3)
+            for ind in range(len(tcc.c_r3_typeR)):
+                temp_out += tcc.c_r3_typeR[ind]*(final_emf**ind)
+        elif final_emf > 19.739 and final_emf <= 21.103:  # range 4 (r4)
+            for ind in range(len(tcc.c_r4_typeR)):
+                temp_out += tcc.c_r4_typeR[ind]*(final_emf**ind)
+        else:
+                if final_emf < -0.226:
+                    raise ValueError(
+                        'voltage cannot be converted, less than -0.226mV')
+                else:
+                    raise ValueError(
+                        'voltage cannot be converted, more than 21.103mV')
     else:
-        for ind in range(len(tcc.b_neg_typeT)):
-            emf_ref += tcc.b_neg_typeT[ind]*(T_ref**ind)
-            
-    final_emf = emf_measured + emf_ref
-    if final_emf >= 0:
-        for ind in range(len(tcc.c_pos_typeT)):
-            temp_out += tcc.c_pos_typeT[ind]*(final_emf**ind)
-    else:
-        for ind in range(len(tcc.c_neg_typeT)):
-            temp_out += tcc.c_neg_typeT[ind]*(final_emf**ind)
+        raise ValueError('global constant THERMOCOUPLE_TYPE incorrect')
+
+        
+        
     return temp_out # returns temperature in Celsius (C)
 
 def round_and_print(message, list_in, digits):
@@ -136,17 +186,19 @@ def calculate_trendline(x_vals, y_vals):
             'intercept':trend_intercept, 
             'trendline':trend_y_vals}
 
-def Seebeck_Cu(T):
+def seebeck_Cu(T):
 # T must be in kelvin: Seebeck coeff [uV/K]
-    exp_term = math.exp(-1*T/93)
-    rational_fraction = 0.442/(1+(T/172.4)**3)
-    s_cu = 0.041*T*( exp_term + 0.123 -  rational_fraction) + 0.804
-    return s_cu
+    if 73.15 < T and T < 673.15:
+        exp_term = math.exp(-1*T/93)
+        rational_fraction = 0.442/(1+(T/172.4)**3)
+        return 0.041*T*( exp_term + 0.123 -  rational_fraction) + 0.804
+    else:
+        raise ValueError("can't get Copper Seebeck, temperature out of range")
 
-def Seebeck_SRM3451(T):
-# Standard Reference Material (SRM) 3451 = Bi2Te3+x
-# NIST provided Seebeck coefficients for SRM3451
-# T must be in KELVIN: Seebeck coeff [uV/K]
+def seebeck_SRM3451(T):
+    # Standard Reference Material (SRM) 3451 = Bi2Te3+x
+    # NIST provided Seebeck coefficient for SRM3451
+    # T must be in KELVIN: Seebeck coeff [uV/K]
     A = 295 # entral temp (room temp) K    
     S_A = -230.03 # µV/K
     a = -2.2040e-1 # coefficients
@@ -158,57 +210,98 @@ def Seebeck_SRM3451(T):
     term3 = c*T**3*(1-(A/T))**3
     term4 = d*T**4*(1-(A/T))**4
     return S_A + term1 + term2 + term3 + term4
+
+def seebeck_SRM3452(T):  # Si80Ge20 Seebeck coefficient
+    # T must be in KELVIN: Seebeck coeff [uV/K]
+    A = 295
+    S_A = 1.16246764e2  # uV / K
+    a = 2.343158e-1
+    b = -8.781594e-5
+    term2 = a * (T - A)
+    term3 = b * (T - A)**2
+    return S_A + term2 + term3
     
-def Seebeck_constantan(T): # units of T: K
+def seebeck_constantan(T): # units of T: K
     # get the Seebeck coefficent of Constantan
     # first get Seebeck coefficient for Copper/Constantan T-type thermocouple
-    # MUST BE FOR 73.15 K < T < 673.15 K
-    S_Cu_Con = 4.37184 + 0.1676*T - (1.84371e-4)*T**2 \
-        + (1.2244e-7)*T**3 - (4.47618e-11)*T**4
-    # subtract Cu/Con Seebeck value from copper Seebeck to get Con Seebeck
-    return Seebeck_Cu(T) - S_Cu_Con
+    if 73.15 < T and T < 673.15: # MUST BE FOR 73.15 K < T < 673.15 K
+        S_Cu_Con = 4.37184 + 0.1676*T - (1.84371e-4)*T**2 \
+            + (1.2244e-7)*T**3 - (4.47618e-11)*T**4
+        # subtract Cu/Con Seebeck value from copper Seebeck to get Con Seebeck
+        # S_Cu_Con is the type T thermocouple Seebeck coefficient
+        return seebeck_Cu(T) - S_Cu_Con
+    else:
+        raise ValueError("can't get Constantan Seebeck, temperature out of range")
+    
 
-def seebeck_measurement(Thots_C, Tcolds_C, offs, plot=False, print_vals=False):
+def seebeck_platinum(T): # units of T: K
+    # get the Seebeck coefficient of Platinum
+    if 70 < T and T < 1500:
+        bracket_term = (math.exp(-1*T/88) - 0.0786 + 0.43 / (1 + (T/84.3)**4))
+        return 0.186 * T * bracket_term - 2.57
+    else:
+        raise ValueError("can't get platinum Seebeck, temperature out of range")
+
+def seebeck_measurement(Thots_C, Tcolds_C, offs, tref_K, plot=False, print_vals=False):
+    tref_C = kelvin_to_celsius(tref_K)
     # offs: a list of 5 offsets, first term must be zero
-        # index of offs corresponds to offset location 
+        # index of offs corresponds to offset location e+
     # use conversion polynomials to get delta V values
-    delta_V12_true = [temp_to_voltage(temp, Tref_C) for temp in Thots_C] # mV
-    delta_V34_true = [temp_to_voltage(temp, Tref_C) for temp in Tcolds_C] # mV
+    delta_V12_true = [temp_to_voltage(temp, tref_C) for temp in Thots_C] # mV
+    delta_V34_true = [temp_to_voltage(temp, tref_C) for temp in Tcolds_C] # mV
     # add simulated voltage offsets, convert to mV
     delta_V12_meas = [volt + offs[1]/1000 + offs[2]/1000 for volt in delta_V12_true]
     delta_V34_meas = [volt + offs[3]/1000 + offs[4]/1000 for volt in delta_V34_true]
     # round_and_print("Voltage across hot thermocouple: ", delta_V12_true, 7)
     # round_and_print("Voltage across cold thermocouple: ", delta_V34_true, 7)
     if print_vals: # print two thermocouple voltages to see realistic example
-        print("true hot voltage LP: ", round(delta_V12_true[1], 5))
-        print("offset hot voltage LP: ", round(delta_V12_meas[1], 5))
-        print("true cold voltage LP: ", round(delta_V34_true[1], 5))
-        print("offset cold voltage LP: ", round(delta_V34_meas[1], 5))    
-        print("true hot voltage: ", round(delta_V12_true[9], 5))
-        print("offset hot voltage: ", round(delta_V12_meas[9], 5))
-        print("true cold voltage: ", round(delta_V34_true[9], 5))
-        print("offset cold voltage: ", round(delta_V34_meas[9], 5))
+        print("true hot voltage low power: ", round(delta_V12_true[4], 5))
+        print("offset hot voltage low power: ", round(delta_V12_meas[4], 5))
+        print("true cold voltage low power: ", round(delta_V34_true[4], 5))
+        print("offset cold voltage low power: ", round(delta_V34_meas[4], 5))    
+        print("true hot voltage: ", round(delta_V12_true[8], 5))
+        print("offset hot voltage: ", round(delta_V12_meas[8], 5))
+        print("true cold voltage: ", round(delta_V34_true[8], 5))
+        print("offset cold voltage: ", round(delta_V34_meas[8], 5))
     # use polynomials to return to temperatures
-    offs_Thots_C = [voltage_to_temp(volt, Tref_C) for volt in delta_V12_meas]
-    offs_Tcolds_C = [voltage_to_temp(volt, Tref_C) for volt in delta_V34_meas]
+    offs_Thots_C = [voltage_to_temp(volt, tref_C) for volt in delta_V12_meas]
+    offs_Tcolds_C = [voltage_to_temp(volt, tref_C) for volt in delta_V34_meas]
     # round_and_print("Offset hot temperatures (C): ", offs_Thots_C, 7)
     # round_and_print("Offset cold temperatures(C): ", offs_Tcolds_C, 7)
     # meas_dT is the same in both Kelvin and Celsius
     meas_dT = [offs_Thots_C[ind]-offs_Tcolds_C[ind] for
               ind in range(len(offs_Thots_C))]
         
-    S_Cu = round(Seebeck_Cu(T_ref_K), 3) # units: uV/K
-    S_Con = round(Seebeck_constantan(T_ref_K), 3) # units: uV/K
-    true_deltaV13 = [-1*(Seebeck_SRM3451(T_ref_K) - S_Con)*delta_T for
-                     delta_T in dT_true]
-    true_deltaV24 = [-1*(Seebeck_SRM3451(T_ref_K) - S_Cu)*delta_T for
-                     delta_T in dT_true] #dT_true is a global variable
-    # note: true_deltaV is in uV
-    # introduce voltage offset for true_deltaV lists
-    meas_deltaV13 = [volt + offs[1] + offs[3] for volt in true_deltaV13] # uV
-    meas_deltaV24 = [volt + offs[2] + offs[4] for volt in true_deltaV24] # uV
-    meas_deltaV = [meas_deltaV24, meas_deltaV13] # uV
-    use_top_13_wires = False # choose between deltaV13 or deltaV24 for Seebeck voltage
+    S_Cu = seebeck_Cu(tref_K) # units: uV/K
+    S_Con = seebeck_constantan(tref_K) # units: uV/K
+    S_Pt = seebeck_platinum(tref_K) # units: uV/K
+    if THERMOCOUPLE_TYPE == 'type T':
+        true_deltaV13 = [-1*(seebeck_SRM3451(tref_K) - S_Con)*delta_T for
+                         delta_T in dT_true]
+        true_deltaV24 = [-1*(seebeck_SRM3451(tref_K) - S_Cu)*delta_T for
+                         delta_T in dT_true] #dT_true is a global variable
+        # note: true_deltaV is in uV
+        # introduce voltage offset for true_deltaV lists
+        meas_deltaV13 = [volt + offs[1] + offs[3] for volt in true_deltaV13] # uV
+        meas_deltaV24 = [volt + offs[2] + offs[4] for volt in true_deltaV24] # uV
+        # choose between deltaV13 or deltaV24 for Seebeck voltage
+        meas_deltaV = [meas_deltaV24, meas_deltaV13] # uV
+        
+        use_top_13_wires = False 
+        
+    elif THERMOCOUPLE_TYPE == 'type R':
+        true_deltaV13 = [-1*(seebeck_SRM3452(tref_K) - S_Pt)*delta_T for
+                         delta_T in dT_true]
+        # note: true_deltaV is in uV
+        # introduce voltage offset for true_deltaV lists
+        meas_deltaV13 = [volt + offs[1] + offs[3] for volt in true_deltaV13] # uV
+        # meas_deltaV24 = [volt + offs[2] + offs[4] for volt in true_deltaV24] # uV
+        meas_deltaV = [None, meas_deltaV13] # uV
+        # choose between deltaV13 or deltaV24 for Seebeck voltage
+        # NOTE: always use 13 for type R because we don't have S for Pt-13%Rh
+        use_top_13_wires = True
+    else:
+        raise ValueError('global constant THERMOCOUPLE_TYPE is incorrect')
     
     # get a dictionary with slope, intercept, and trendline y values
     trend_info = calculate_trendline(meas_dT, meas_deltaV[use_top_13_wires])
@@ -221,8 +314,11 @@ def seebeck_measurement(Thots_C, Tcolds_C, offs, plot=False, print_vals=False):
         plt.xlabel('Measured $\Delta$ Temperature (K)', fontsize=font_size)
         plt.ylabel('Measured Seebeck Voltage (uV)', fontsize=font_size)
         invoke_plot_params("Seebeck_Effect_for_Slope")
-        
-    S_sample = -1*trend_info['slope'] + [S_Cu, S_Con][use_top_13_wires] # need to add S_const
+    
+    if THERMOCOUPLE_TYPE == 'type T':
+        S_sample = -1*trend_info['slope'] + [S_Cu, S_Con][use_top_13_wires]
+    elif THERMOCOUPLE_TYPE == 'type R':
+        S_sample = -1*trend_info['slope'] + [None, S_Pt][use_top_13_wires]
     # print("\nFinal Seebeck Coefficient of the Sample: ")
     # print(round(S_sample, 9))
     
@@ -241,7 +337,9 @@ def invoke_plot_params(filename="unnamed_1200dpi"):
     plt.tick_params(axis='both',which='minor', direction = 'in', 
                     top = 1, right = 1, length=2,width=1,labelsize=font_size)
     plt.grid()
-    # plt.savefig("plot_img_1200dpi/"+filename, dpi=1200, bbox_inches='tight')
+    if SAVEFIG:
+        # plt.savefig("plot_img_1200dpi/"+filename, dpi=1200, bbox_inches='tight')
+        plt.savefig("post_APS_plots/"+filename, dpi=1200, bbox_inches='tight')
     plt.show()
     
     
@@ -268,29 +366,49 @@ def plot_DT_offset(offs, Tref_K): # DT_offset can be plotted vs. DT_true
 
 def plot_polynomials(temp_range, volt_range, Tref):
     # temp_range units: C   volt_range units: mV   Tref units: C
-    temps_in = np.linspace(temp_range[0], temp_range[1], num_points) # units: C
-    volts_out = [temp_to_voltage(temp, Tref_C) for temp in temps_in]
+    temps_in = np.linspace(temp_range[0], temp_range[1], NUM_POINTS) # units: C
+    volts_out = [temp_to_voltage(temp, TREF_C) for temp in temps_in]
     
     plt.plot(temps_in, volts_out, 'k')
-    plt.title('Temperature to Voltage Conversion Polynomial', pad=20)
+    plt.title("Temperature to Voltage Conversion Polynomial, " + 
+              "Tref=%d K, Thermocouple %s" % 
+              (TREF_K, THERMOCOUPLE_TYPE), pad=20)
+    # plt.subtitle('test')
     plt.xlabel('Temperature (C)', fontsize=font_size)
     plt.ylabel('Voltage (mV)', fontsize=font_size)
     invoke_plot_params("temp_to_voltage")
     
-    volts_in = np.linspace(volt_range[0], volt_range[1], num_points) # units: mV
-    temps_out = [voltage_to_temp(volt, Tref_C) for volt in volts_in]
+    volts_in = np.linspace(volt_range[0], volt_range[1], NUM_POINTS) #units: mV
+    temps_out = [voltage_to_temp(volt, TREF_C) for volt in volts_in]
     
     volt_diff = 0.05 # mV
-    cold_start = 0.03153 # mV
+    cold_start_LP = 0.00697 # mV  # LP stands for lower power
+    # cold_start_LP = 0.01396 # mV  # LP stands for lower power
+    cold_volts_LP = [cold_start_LP, cold_start_LP + volt_diff]
+    hot_start_LP = 0.01396 # mV
+    # hot_start_LP = 0.02801 # mV
+    hot_volts_LP = [hot_start_LP, hot_start_LP + volt_diff]
+    cold1_LP = voltage_to_temp(cold_volts_LP[0], TREF_C)
+    cold2_LP = voltage_to_temp(cold_volts_LP[1], TREF_C)
+    hot1_LP = voltage_to_temp(hot_volts_LP[0], TREF_C)
+    hot2_LP = voltage_to_temp(hot_volts_LP[1], TREF_C)
+    
+    # cold_start = 0.03153 # mV
+    cold_start = 0.02801 # mV
     cold_volts = [cold_start, cold_start + volt_diff]
-    hot_start = 0.06355 # mV
+    # hot_start = 0.06355 # mV
+    hot_start = 0.05639 # mV
     hot_volts = [hot_start, hot_start + volt_diff]
-    cold1 = voltage_to_temp(cold_volts[0], Tref_C)
-    cold2 = voltage_to_temp(cold_volts[1], Tref_C)
-    hot1 = voltage_to_temp(hot_volts[0], Tref_C)
-    hot2 = voltage_to_temp(hot_volts[1], Tref_C)
+    cold1 = voltage_to_temp(cold_volts[0], TREF_C)
+    cold2 = voltage_to_temp(cold_volts[1], TREF_C)
+    hot1 = voltage_to_temp(hot_volts[0], TREF_C)
+    hot2 = voltage_to_temp(hot_volts[1], TREF_C)
     
     plt.plot(volts_in, temps_out, 'k')
+    plt.plot(cold_volts_LP, [cold1_LP, cold2_LP], 'o', color='green',
+              label='Temp diff: %.3f C' % (cold2_LP - cold1_LP))
+    plt.plot(hot_volts_LP, [hot1_LP, hot2_LP], 'o', color='orange',
+              label='Temp diff: %.3f C' % (hot2_LP-hot1_LP))
     plt.plot(cold_volts, [cold1, cold2], 'bo',
               label='Temp diff: %.3f C' % (cold2-cold1))
     plt.plot(hot_volts, [hot1, hot2], 'ro',
@@ -298,11 +416,13 @@ def plot_polynomials(temp_range, volt_range, Tref):
     # plt.axvline(0, -195, -180, color='r') # for plotting horizontal lines
     # test = plt.axvline(x=.2, ymin=-195, ymax=-180)
     # plt.plot(test)
-    plt.title("Voltage to Temperature Conversion Polynomial, Tref=%d K" %
-              (T_ref_K), pad=20)
+    plt.title("Voltage to Temperature Conversion Polynomial, " + 
+              "Tref=%d K, Thermocouple %s" %
+              (TREF_K, THERMOCOUPLE_TYPE), pad=20)
     plt.xlabel('Voltage (mV)', fontsize=font_size)
     plt.ylabel('Temperature (C)', fontsize=font_size)
-    plt.legend(bbox_to_anchor=(1.05,1))
+    # plt.legend(bbox_to_anchor=(1.05,1))
+    # plt.legend()
     invoke_plot_params("voltage_to_temp")
 
 # main script ---------------------------------------
@@ -310,26 +430,30 @@ def plot_polynomials(temp_range, volt_range, Tref):
 # dQ/dT_true = P = kA(dT_true/dx) = power delivered to the sample
 powers = [0, 1e-3, 2e-3, 3e-3, 4e-3, 5e-3, \
           6e-3, 7e-3, 8e-3, 9e-3, 10e-3] # units: W eventually test 100 values here
-round_and_print("Input power values (W): ", powers, 7)
 kappa = 2.0 # units: W/(m*K)  thermal conductivity kappa for Bi2Te3
-area = 0.002**2 # units: m^2  2mm x 2mm cross sectional area 
+area = 0.002**2 # units: m^2  2mm x 2mm cross sectional area
 # location of hot and cold thermocoulpe probe points
 x_cold = 0.001667 # 1.67mm, or sample length / 3
 dx = 0.001667 # 1.67mm  length difference between each thermocouple probe point
-x_hot = x_cold + dx # 2*1.67mm
+x_hot = x_cold + dx # 2 * 1.67mm
 # difference in temperature between each thermocouple (delta T)
 dT_true = [(pwr * dx)/(kappa * area) for pwr in powers] #units: K
 # derivative of T with respect to x is 
-    # dT_true/dx (slope)  T(x) = (dT_true/dx)x + T_ref_K
+    # dT_true/dx (slope)  T(x) = (dT_true/dx)x + TREF_K
 # reference temperature at the base of the sample
-T_ref_K = 80 # units: K
-# T_ref_K = 293 # units: K
+# TREF_K = 80 # units: K
+# TREF_K = 293 # units: K
+TREF_K = 304 # units: K
+# TREF_K = 400 # units: K
+# TREF_K = 500 # units: K
+# TREF_K = 670 # units: K  # max value until temp out of range for Cu seebeck
+TREF_C = kelvin_to_celsius(TREF_K) # reference temperature in celsius
+print("Reference temperature: %.2f K = %.2f C\n" % (TREF_K, TREF_C))
 # get hot and cold temperatures and convert to celsius
-Thots = [(delta_T/dx)*x_hot + T_ref_K for delta_T in dT_true]
-Tcolds = [(delta_T/dx)*x_cold + T_ref_K for delta_T in dT_true] 
+Thots = [(delta_T/dx)*x_hot + TREF_K for delta_T in dT_true]
+Tcolds = [(delta_T/dx)*x_cold + TREF_K for delta_T in dT_true] 
 Thots_C = [kelvin_to_celsius(temp) for temp in Thots]
 Tcolds_C = [kelvin_to_celsius(temp) for temp in Tcolds] 
-Tref_C = kelvin_to_celsius(T_ref_K) # reference temperature in celsius
 # create offsets in uV
 # offset_list1 = [-200,-100,-50,-20,-10,-5,-2,-1,-0.5,-0.2,-0.1,-0.05,-0.02,-0.01, 
 #          0, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, 100, 200]
@@ -341,126 +465,156 @@ offset_list4 = main_offset_list
 ind_zero = len(offset_list1)//2  # get index of zero offset (center of list) 
 
 font_size = 16
-thermocouple_types = ('type T', 'type R')
-thermocouple_type = thermocouple_types[0]
-# num_points = 301  # choose the resolution of horizontal axis for plots
-num_points = 21
-# for plotting true value
-true_seebeck = [Seebeck_SRM3451(T_ref_K)] * num_points
-percent_error = 5  # %
-minus_percent = [S*(1-(percent_error/100)) for S in true_seebeck]
-plus_percent = [S*(1+(percent_error/100)) for S in true_seebeck]
+# all caps - constants should not be changed in runtime
+PERCENT_ERROR = 5  # %
+NUM_POINTS = 301  # choose the resolution of horizontal axis for plots
+# NUM_POINTS = 21
+THERMOCOUPLE_TYPES = ('type T', 'type R') 
+# never change THERMOCOUPLE_TYPE outside of this line
+THERMOCOUPLE_TYPE = THERMOCOUPLE_TYPES[1]
+SAVEFIG = True
+
+enable_seebeck_vs_offsets_plots = False  # enable plots as needed
+enable_seebeck_volts_vs_temp_diff = False
+enable_measdV13_vs_measdV24 = False
+enable_print_TC_volts = False
+enable_dDT_vs_trueDT = False
+enable_plot_polynomials = False
+enable_percent_error_plot = True
+
+if THERMOCOUPLE_TYPE == 'type T':  # keep track of material of each wire number
+    material_string_13 = "Constantan"  # 1 and 3 are the negative leads
+    material_string_24 = "Copper"  # 2 and 4 are the positive leads
+    true_seebeck = [seebeck_SRM3451(TREF_K)] * NUM_POINTS
+elif THERMOCOUPLE_TYPE == 'type R':
+    material_string_13 = "Platinum"  # these are negative
+    material_string_24 = "Pt-13% Rh"  # these are positive
+    true_seebeck = [seebeck_SRM3452(TREF_K)] * NUM_POINTS
+else:
+    raise ValueError('global constant THERMOCOUPLE_TYPE is incorrect')
+
+minus_percent = [S*(1-(PERCENT_ERROR/100)) for S in true_seebeck]
+plus_percent = [S*(1+(PERCENT_ERROR/100)) for S in true_seebeck]
 
 offs_inputs = [0, 0, 0, 0, 0]
 
-# hold offsets 3 and 4 constant while varying 1 and 2 ------------ FIGURE 1
-offset_list1 = np.linspace(main_offset_list[0],main_offset_list[-1],num_points)
-for ind in range(len(offset_list2)):
-    s_coeffs = []
-    offs_inputs[2] = offset_list2[ind]
-    for offset1 in offset_list1:
-        offs_inputs[1] = offset1
-        s_coeffs.append(seebeck_measurement(Thots_C, Tcolds_C, offs_inputs))
+round_and_print("Applying the following powers (W) to the heater: ", powers, 7)
+
+# ------------------------------------------------------------------------
+if enable_seebeck_vs_offsets_plots:
+    # hold offsets 3 and 4 constant while varying 1 and 2 ------------ FIGURE 1
+    offset_list1 = np.linspace(main_offset_list[0],main_offset_list[-1],NUM_POINTS)
+    for ind in range(len(offset_list2)):
+        s_coeffs = []
+        offs_inputs[2] = offset_list2[ind]
+        for offset1 in offset_list1:
+            offs_inputs[1] = offset1
+            s_coeffs.append(seebeck_measurement(Thots_C, Tcolds_C, offs_inputs, TREF_K))
+        
+        plt.plot(offset_list1, s_coeffs, 
+                 label=r'$\delta V2=%.2f uV$' % (round(offs_inputs[2], 2)))
+        
     
-    plt.plot(offset_list1, s_coeffs, 
-             label=r'$\delta V2=%.2f uV$' % (round(offs_inputs[2], 2)))
+    plt.plot(offset_list1, true_seebeck, 'r--', label="True Seebeck Coefficient")
+    # plt.plot(offset_list1, minus_percent, 'k:', 
+    #          label='%d'%(PERCENT_ERROR)+"% Error Bounds")
+    # plt.plot(offset_list1, plus_percent, 'k:')
+    plt.fill_between(offset_list1, minus_percent, plus_percent, color='gray', 
+                     alpha=.3, label="$\u00B1$%d"%(PERCENT_ERROR)+
+                     "% Typical Experimental\nUncertainty")
+    plt.title("Offsets in Hot Thermocouple Only, Tref=%d K"%(TREF_K), pad=20)
+    plt.xlabel('$\delta$V1 ($\mu$V)', fontsize=font_size)
+    plt.ylabel('Seebeck Coefficient ($\mu$V/K)', fontsize=font_size)
+    plt.legend(bbox_to_anchor=(1.05,1))
+    # plt.autoscale(enable=False, axis='y')
+    invoke_plot_params("S_vs_dV1_dV2")
     
-
-plt.plot(offset_list1, true_seebeck, 'r--', label="True Seebeck Coefficient")
-# plt.plot(offset_list1, minus_percent, 'k:', 
-#          label='%d'%(percent_error)+"% Error Bounds")
-# plt.plot(offset_list1, plus_percent, 'k:')
-plt.fill_between(offset_list1, minus_percent, plus_percent, color='gray', 
-                 alpha=.3, label="$\u00B1$%d"%(percent_error)+
-                 "% Typical Experimental\nUncertainty")
-plt.title("Offsets in Hot Thermocouple Only, Tref=%d K"%(T_ref_K), pad=20)
-plt.xlabel('$\delta$V1 ($\mu$V)', fontsize=font_size)
-plt.ylabel('Seebeck Coefficient ($\mu$V/K)', fontsize=font_size)
-plt.legend(bbox_to_anchor=(1.05,1))
-# plt.autoscale(enable=False, axis='y')
-invoke_plot_params("S_vs_dV1_dV2")
-
-# hold offsets 1 and 2 constant while varying 3 and 4------------ FIGURE 2
-offset_list3 = offset_list1 # offset_list3 becomes a linspace for plot
-offset_list1 = main_offset_list # reset offset_list1
-offs_inputs = [0, 0, 0, 0, 0]
-for ind in range(len(offset_list4)):
-    s_coeffs = []
-    offs_inputs[4] = offset_list4[ind]
-    for offset3 in offset_list3:
-        offs_inputs[3] = offset3
-        s_coeffs.append(seebeck_measurement(Thots_C, Tcolds_C, offs_inputs))
+    # hold offsets 1 and 2 constant while varying 3 and 4------------ FIGURE 2
+    offset_list3 = offset_list1 # offset_list3 becomes a linspace for plot
+    offset_list1 = main_offset_list # reset offset_list1
+    offs_inputs = [0, 0, 0, 0, 0]
+    for ind in range(len(offset_list4)):
+        s_coeffs = []
+        offs_inputs[4] = offset_list4[ind]
+        for offset3 in offset_list3:
+            offs_inputs[3] = offset3
+            s_coeffs.append(seebeck_measurement(Thots_C, Tcolds_C, offs_inputs, TREF_K))
+        
+        plt.plot(offset_list3, s_coeffs, 
+                 label=r'$\delta V4=%.2f uV$' % (round(offs_inputs[4], 2)))
+        
+    plt.plot(offset_list3, true_seebeck, 'r--', label="True Seebeck Coefficient")
     
-    plt.plot(offset_list3, s_coeffs, 
-             label=r'$\delta V4=%.2f uV$' % (round(offs_inputs[4], 2)))
+    plt.fill_between(offset_list3, minus_percent, plus_percent, color='gray', 
+                     alpha=.3, label="$\u00B1$%d"%(PERCENT_ERROR)+
+                     "% Typical Experimental\nUncertainty")
+    plt.title("Offsets in Cold Thermocouple Only, Tref=%d K"%(TREF_K), pad=20)
+    plt.xlabel('$\delta$V3 ($\mu$V)', fontsize=font_size)
+    plt.ylabel('Seebeck Coefficient ($\mu$V/K)', fontsize=font_size)
+    plt.legend(bbox_to_anchor=(1.05,1))
+    invoke_plot_params("S_vs_dV3_dV4")
     
-plt.plot(offset_list3, true_seebeck, 'r--', label="True Seebeck Coefficient")
-
-plt.fill_between(offset_list3, minus_percent, plus_percent, color='gray', 
-                 alpha=.3, label="$\u00B1$%d"%(percent_error)+
-                 "% Typical Experimental\nUncertainty")
-plt.title("Offsets in Cold Thermocouple Only, Tref=%d K"%(T_ref_K), pad=20)
-plt.xlabel('$\delta$V3 ($\mu$V)', fontsize=font_size)
-plt.ylabel('Seebeck Coefficient ($\mu$V/K)', fontsize=font_size)
-plt.legend(bbox_to_anchor=(1.05,1))
-invoke_plot_params("S_vs_dV3_dV4")
-
-# hold offsets 2 and 4 constant while varying 1 and 3------------ FIGURE 3
-offset_list1 = offset_list3 # offset_list1 becomes a linspace for plot
-offset_list3 = main_offset_list # reset offset_list3
-offs_inputs = [0, 0, 0, 0, 0]
-for ind in range(len(offset_list3)):
-    s_coeffs = []
-    offs_inputs[3] = offset_list3[ind]
-    for offset1 in offset_list1:
-        offs_inputs[1] = offset1
-        s_coeffs.append(seebeck_measurement(Thots_C, Tcolds_C, offs_inputs))
-
-    plt.plot(offset_list1, s_coeffs, 
-             label=r'$\delta V3=%.2f uV$' % (round(offs_inputs[3], 2)))
+    # hold offsets 2 and 4 constant while varying 1 and 3------------ FIGURE 3
+    offset_list1 = offset_list3 # offset_list1 becomes a linspace for plot
+    offset_list3 = main_offset_list # reset offset_list3
+    offs_inputs = [0, 0, 0, 0, 0]
+    for ind in range(len(offset_list3)):
+        s_coeffs = []
+        offs_inputs[3] = offset_list3[ind]
+        for offset1 in offset_list1:
+            offs_inputs[1] = offset1
+            s_coeffs.append(seebeck_measurement(Thots_C, Tcolds_C, offs_inputs, TREF_K))
     
-plt.plot(offset_list1, true_seebeck, 'r--', label="True Seebeck Coefficient")
-
-plt.fill_between(offset_list1, minus_percent, plus_percent, color='gray', 
-                 alpha=.3, label="$\u00B1$%d"%(percent_error)+
-                 "% Typical Experimental\nUncertainty")
-plt.title("Offsets in Constantan Wires Only, Tref=%d K"%(T_ref_K), pad=20)
-plt.xlabel('$\delta$V1 ($\mu$V)', fontsize=font_size)
-plt.ylabel('Seebeck Coefficient ($\mu$V/K)', fontsize=font_size)
-plt.legend(bbox_to_anchor=(1.05,1))
-invoke_plot_params("S_vs_dV1_dV3")
-
-# hold offsets 1 and 3 constant while varying 2 and 4------------ FIGURE 4
-offset_list2 = offset_list1 # offset_list2 becomes a linspace for plot
-offset_list1 = main_offset_list # reset offset_list1
-offs_inputs = [0, 0, 0, 0, 0]
-for ind in range(len(offset_list4)):
-    s_coeffs = []
-    offs_inputs[4] = offset_list4[ind]
-    for offset2 in offset_list2:
-        offs_inputs[2] = offset2
-        s_coeffs.append(seebeck_measurement(Thots_C, Tcolds_C, offs_inputs))
+        plt.plot(offset_list1, s_coeffs, 
+                 label=r'$\delta V3=%.2f uV$' % (round(offs_inputs[3], 2)))
+        
+    plt.plot(offset_list1, true_seebeck, 'r--', label="True Seebeck Coefficient")
     
-    plt.plot(offset_list2, s_coeffs, 
-             label=r'$\delta V4=%.2f uV$' % (round(offs_inputs[4], 2)))
+    plt.fill_between(offset_list1, minus_percent, plus_percent, color='gray', 
+                     alpha=.3, label="$\u00B1$%d"%(PERCENT_ERROR)+
+                     "% Typical Experimental\nUncertainty")
+    plt.title("Offsets in %s Wires Only, Tref=%d K" % 
+              (material_string_13, TREF_K), pad=20)
+    plt.xlabel('$\delta$V1 ($\mu$V)', fontsize=font_size)
+    plt.ylabel('Seebeck Coefficient ($\mu$V/K)', fontsize=font_size)
+    plt.legend(bbox_to_anchor=(1.05,1))
+    invoke_plot_params("S_vs_dV1_dV3")
     
-plt.plot(offset_list2, true_seebeck, 'r--', label="True Seebeck Coefficient")
+    # hold offsets 1 and 3 constant while varying 2 and 4------------ FIGURE 4
+    offset_list2 = offset_list1 # offset_list2 becomes a linspace for plot
+    offset_list1 = main_offset_list # reset offset_list1
+    offs_inputs = [0, 0, 0, 0, 0]
+    for ind in range(len(offset_list4)):
+        s_coeffs = []
+        offs_inputs[4] = offset_list4[ind]
+        for offset2 in offset_list2:
+            offs_inputs[2] = offset2
+            s_coeffs.append(seebeck_measurement(Thots_C, Tcolds_C, offs_inputs, TREF_K))
+        
+        plt.plot(offset_list2, s_coeffs, 
+                 label=r'$\delta V4=%.2f uV$' % (round(offs_inputs[4], 2)))
+        
+    plt.plot(offset_list2, true_seebeck, 'r--', label="True Seebeck Coefficient")
+    
+    plt.fill_between(offset_list2, minus_percent, plus_percent, color='gray', 
+                     alpha=.3, label="$\u00B1$%d"%(PERCENT_ERROR)+
+                     "% Typical Experimental\nUncertainty")
+    plt.title("Offsets in %s Wires Only, Tref=%d K" % 
+              (material_string_24, TREF_K), pad=20)
+    plt.xlabel('$\delta$V2 ($\mu$V)', fontsize=font_size)
+    plt.ylabel('Seebeck Coefficient ($\mu$V/K)', fontsize=font_size)
+    plt.legend(bbox_to_anchor=(1.05,1))
+    invoke_plot_params("S_vs_dV2_dV4")
 
-plt.fill_between(offset_list2, minus_percent, plus_percent, color='gray', 
-                 alpha=.3, label="$\u00B1$%d"%(percent_error)+
-                 "% Typical Experimental\nUncertainty")
-plt.title("Offsets in Copper Wires Only, Tref=%d K"%(T_ref_K), pad=20)
-plt.xlabel('$\delta$V2 ($\mu$V)', fontsize=font_size)
-plt.ylabel('Seebeck Coefficient ($\mu$V/K)', fontsize=font_size)
-plt.legend(bbox_to_anchor=(1.05,1))
-invoke_plot_params("S_vs_dV2_dV4")
-
+# ------------------------------------------------------------------------
 # plot true/measured seebeck voltages vs. true/measured temperature differences
-if False: # only plot if needed
+if enable_seebeck_volts_vs_temp_diff: # only plot if needed
+    if THERMOCOUPLE_TYPE != 'type T':
+        raise ValueError("this section of code only works for type T")
     offs_inputs = [0, 50, 50, 0, 0]
     # use conversion polynomials to get delta V values
-    delta_V12_true = [temp_to_voltage(temp, Tref_C) for temp in Thots_C] # mV
-    delta_V34_true = [temp_to_voltage(temp, Tref_C) for temp in Tcolds_C] # mV
+    delta_V12_true = [temp_to_voltage(temp, TREF_C) for temp in Thots_C] # mV
+    delta_V34_true = [temp_to_voltage(temp, TREF_C) for temp in Tcolds_C] # mV
     # add simulated voltage offsets, convert to mV
     delta_V12_meas = [volt + offs_inputs[1]/1000 + offs_inputs[2]/1000 
                       for volt in delta_V12_true] # mV
@@ -468,16 +622,16 @@ if False: # only plot if needed
                       for volt in delta_V34_true] # mV
     
     # use polynomials to return to temperatures
-    offs_Thots_C = [voltage_to_temp(volt, Tref_C) for volt in delta_V12_meas]
-    offs_Tcolds_C = [voltage_to_temp(volt, Tref_C) for volt in delta_V34_meas]
+    offs_Thots_C = [voltage_to_temp(volt, TREF_C) for volt in delta_V12_meas]
+    offs_Tcolds_C = [voltage_to_temp(volt, TREF_C) for volt in delta_V34_meas]
     meas_dT = [offs_Thots_C[ind]-offs_Tcolds_C[ind] for
           ind in range(len(offs_Thots_C))]
     
-    S_Cu = round(Seebeck_Cu(T_ref_K), 3) # units: uV/K
-    S_Con = round(Seebeck_constantan(T_ref_K), 3) # units: uV/K
-    true_deltaV13 = [-1*(Seebeck_SRM3451(T_ref_K) - S_Con)*delta_T for
+    S_Cu = round(seebeck_Cu(TREF_K), 3) # units: uV/K
+    S_Con = round(seebeck_constantan(TREF_K), 3) # units: uV/K
+    true_deltaV13 = [-1*(seebeck_SRM3451(TREF_K) - S_Con)*delta_T for
                      delta_T in dT_true] # uV
-    true_deltaV24 = [-1*(Seebeck_SRM3451(T_ref_K) - S_Cu)*delta_T for
+    true_deltaV24 = [-1*(seebeck_SRM3451(TREF_K) - S_Cu)*delta_T for
                      delta_T in dT_true] # uV
     # note: true_deltaV is in uV
     # introduce voltage offset for true_deltaV lists
@@ -499,15 +653,18 @@ if False: # only plot if needed
     plt.legend(bbox_to_anchor=(1.05,1))
     invoke_plot_params("true_meas_dV_vs_dT")
 
+# ------------------------------------------------------------------------
 # plot meas_deltaV13 vs. meas_deltaV24 for various offsets
-if False: # only plot if needed
+if enable_measdV13_vs_measdV24: # only plot if needed
+    if THERMOCOUPLE_TYPE != 'type T':
+        raise ValueError("this section of code only works for type T")    
     offs = [0,0,0,0,0] # initialize new offsets specific to this graph
     offs_combos = [(-100,-100), (-100,0), (0,0), (100,0), (100,100)]
-    S_Cu = round(Seebeck_Cu(T_ref_K), 3) # units: uV/K
-    S_Con = round(Seebeck_constantan(T_ref_K), 3) # units: uV/K
-    true_deltaV13 = [-1*(Seebeck_SRM3451(T_ref_K) - S_Con)*delta_T for
+    S_Cu = round(seebeck_Cu(TREF_K), 3) # units: uV/K
+    S_Con = round(seebeck_constantan(TREF_K), 3) # units: uV/K
+    true_deltaV13 = [-1*(seebeck_SRM3451(TREF_K) - S_Con)*delta_T for
                      delta_T in dT_true]
-    true_deltaV24 = [-1*(Seebeck_SRM3451(T_ref_K) - S_Cu)*delta_T for
+    true_deltaV24 = [-1*(seebeck_SRM3451(TREF_K) - S_Cu)*delta_T for
                      delta_T in dT_true] #dT_true is a global variable
     # note: true_deltaV is in uV
     for tup in offs_combos:
@@ -523,45 +680,91 @@ if False: # only plot if needed
                  (offs[1],offs[3]) + "\nslope = %.5f"%(dV_trend['slope'])
                  + "\nintercept = %.2f"%(dV_trend['intercept']))
     plt.title("Constantan Terminal Voltage vs. Copper Terminal Voltage"+
-              ", Tref=%d K"%(T_ref_K), pad=20)
+              ", Tref=%d K"%(TREF_K), pad=20)
     plt.xlabel('$\Delta V_{24}$ Measured ($\mu$V)', fontsize=font_size)
     plt.ylabel('$\Delta V_{13}$ Measured ($\mu$V)', fontsize=font_size)
     plt.legend(bbox_to_anchor=(1.05,1))
     invoke_plot_params("V13_vs_V24_meas")
 
-if False: #print two thermocouple voltage values, calculate a realistic case
+# ------------------------------------------------------------------------
+if enable_print_TC_volts: #print two thermocouple voltage values, calculate a realistic case
     offs = [0, 50, 0, 50, 0]
-    seebeck_measurement(Thots_C, Tcolds_C, offs, plot=True, print_vals=True)
+    seebeck_measurement(Thots_C, Tcolds_C, offs, TREF_K, plot=True, print_vals=True)
 
-if False: # plot temperature offset in Delta T values for increasing Delta T
+# ------------------------------------------------------------------------
+if enable_dDT_vs_trueDT: # plot temperature offset in Delta T values for increasing Delta T
     offs_inputs = [0, 50, 50, 0, 0]
-    offs_Delta_T = plot_DT_offset(offs_inputs, T_ref_K)
+    offs_Delta_T = plot_DT_offset(offs_inputs, TREF_K)
     plt.plot(dT_true, offs_Delta_T, 'k')
     plt.title('Offset in $\Delta T$ vs. True $\Delta T$', pad=20)
     plt.xlabel(r'True $\Delta T$ (K)', fontsize=font_size)
     plt.ylabel(r'$\delta (\Delta T)$ (K)', fontsize=font_size)
     invoke_plot_params("offs_DT_vs_DTtrue")
+
+# ------------------------------------------------------------------------
+if enable_plot_polynomials: # plot polynomials and show greater offset effect at higher temps
+    # plot_polynomials([-200, 100], [-4, 20], TREF_C) # wide ranges
+    # plot_polynomials([-200, -180], [-0.1, 0.3], TREF_C) # realistic ranges
+    if THERMOCOUPLE_TYPE == 'type T':
+        plot_polynomials([-200, -180], [0, 0.15], TREF_C) # realistic ranges
+    elif THERMOCOUPLE_TYPE == 'type R':
+        # plot_polynomials([-40, 200], [-0.226, 21.103], TREF_C)
+        # plot_polynomials([-40, 200], [-0.226, 0.18], TREF_C)
+        plot_polynomials([-40, 200], [0, 0.15], TREF_C)
+        # -0.226mV to 21.103mV
     
-if False: # plot polynomials and show greater offset effect at higher temps
-    # plot_polynomials([-200, 100], [-4, 20], Tref_C) # wide ranges
-    # plot_polynomials([-200, -180], [-0.1, 0.3], Tref_C) # realistic ranges
-    plot_polynomials([-200, -180], [0, 0.15], Tref_C) # realistic ranges
+# ------------------------------------------------------------------------
+if enable_percent_error_plot: # plot percent error vs T for type T thermocouple
+    # Tref_var is a linear space of various reference temperatures
+    if THERMOCOUPLE_TYPE == 'type T':
+        temp_range = [80, 400] # units: K # NOTE: reusing variable names
+        Tref_var = np.linspace(temp_range[0], temp_range[1], NUM_POINTS)
+        S_true = [seebeck_SRM3451(tref) for tref in Tref_var]
+    elif THERMOCOUPLE_TYPE == 'type R':
+        temp_range = [350, 650]
+        Tref_var = np.linspace(temp_range[0], temp_range[1], NUM_POINTS)
+        S_true = [seebeck_SRM3452(tref) for tref in Tref_var]
+    else:
+        raise ValueError('global constant THERMOCOUPLE_TYPE is incorrect')
+                
+    # offs_var_ref contains 3 offset scenarios 
+    offs_var_ref = [[0,0,0,0,0], [0,50,50,0,0], [0,-50,-50,0,0]]
+    for ind in range(3):
+        S_meas = []
+        for tref in Tref_var: # inefficient: nested for loops
+            # thots_var is varying hot temperatures (T ref is varying)
+            thots_var = [(delta_T/dx)*x_hot + tref for delta_T in dT_true]
+            tcolds_var = [(delta_T/dx)*x_cold + tref for delta_T in dT_true] 
+            thots_C_var = [kelvin_to_celsius(temp) for temp in thots_var]
+            tcolds_C_var = [kelvin_to_celsius(temp) for temp in tcolds_var]
+            S_meas.append(seebeck_measurement(thots_C_var, tcolds_C_var, 
+                                              offs_var_ref[ind], tref))
+            
+        err_curve = [
+            ((S_meas[ind] - S_true[ind]) * 100 / S_true[ind]) for 
+            ind in range(len(S_true))
+            ]
+        # positive percent error corresponds to "overshot" S value
     
+        plt.plot(Tref_var, err_curve, 
+                 label='$\delta$V1 = $\delta$V2 = %d$\mu$V' % 
+                 (offs_var_ref[ind][1]))
+        # '$\delta$V1 ($\mu$V)'
+        
+    plt.ylim([-10, 10])
+    plt.title("Temperature Dependence of Seebeck Measurement Error", pad=20)
+    plt.xlabel('Reference Temperature (K)', fontsize=font_size)
+    plt.ylabel('Percent Error (%)', fontsize=font_size)
+    # plt.legend(bbox_to_anchor=(1.45, 1))
+    plt.legend()
+    invoke_plot_params("percent_error_vs_temp")
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+# things that need are changed when switching between type T and type R:
+    # thermocouple conversion polynomials
+    # seebeck coefficient subtracted out in seebeck measurement function
+    # SRM material used (Bismuth Telluride or Silicon 80 Germanium 20)
+    # temperature / voltage ranges used to plot polynomials
 
 
 
