@@ -139,9 +139,8 @@ def voltage_to_temp(emf_measured, T_ref):
     else:
         raise ValueError('global constant THERMOCOUPLE_TYPE incorrect')
 
-        
-        
     return temp_out # returns temperature in Celsius (C)
+
 
 def round_and_print(message, list_in, digits):
     print(message)
@@ -443,9 +442,9 @@ dT_true = [(pwr * dx)/(kappa * area) for pwr in powers] #units: K
 # reference temperature at the base of the sample
 # TREF_K = 80 # units: K
 # TREF_K = 293 # units: K
-TREF_K = 304 # units: K
+# TREF_K = 304 # units: K
 # TREF_K = 400 # units: K
-# TREF_K = 500 # units: K
+TREF_K = 500 # units: K
 # TREF_K = 670 # units: K  # max value until temp out of range for Cu seebeck
 TREF_C = kelvin_to_celsius(TREF_K) # reference temperature in celsius
 print("Reference temperature: %.2f K = %.2f C\n" % (TREF_K, TREF_C))
@@ -472,7 +471,7 @@ NUM_POINTS = 301  # choose the resolution of horizontal axis for plots
 THERMOCOUPLE_TYPES = ('type T', 'type R') 
 # never change THERMOCOUPLE_TYPE outside of this line
 THERMOCOUPLE_TYPE = THERMOCOUPLE_TYPES[1]
-SAVEFIG = True
+SAVEFIG = False
 
 enable_seebeck_vs_offsets_plots = False  # enable plots as needed
 enable_seebeck_volts_vs_temp_diff = False
@@ -480,7 +479,8 @@ enable_measdV13_vs_measdV24 = False
 enable_print_TC_volts = False
 enable_dDT_vs_trueDT = False
 enable_plot_polynomials = False
-enable_percent_error_plot = True
+enable_percent_error_plot = False
+enable_plot_blip = True
 
 if THERMOCOUPLE_TYPE == 'type T':  # keep track of material of each wire number
     material_string_13 = "Constantan"  # 1 and 3 are the negative leads
@@ -759,6 +759,42 @@ if enable_percent_error_plot: # plot percent error vs T for type T thermocouple
     plt.legend()
     invoke_plot_params("percent_error_vs_temp")
 
+if enable_plot_blip:  # plot zoomed in Seebeck vs. offset graph to show blip
+    # showing data blip for dV1 = 0, dV2 = 0, dV3 = variable, dV4 = 200uV
+    blip_bounds = [-20, 20]
+    offset_list3 = np.linspace(blip_bounds[0], blip_bounds[-1], NUM_POINTS)
+    # for ind in range(len(offset_list2)):
+    s_coeffs = []
+    offs_inputs = [0, 0, 0, 0, 200]
+    for offset3 in offset_list3:
+        offs_inputs[3] = offset3
+        s_coeffs.append(seebeck_measurement(Thots_C, Tcolds_C, offs_inputs, TREF_K))
+    
+    plt.plot(offset_list3, s_coeffs, 'm')
+        
+    plt.title("$\delta V4=200 uV$, Tref=%d K" % (TREF_K), pad=20)
+    plt.xlabel('$\delta$V3 ($\mu$V)', fontsize=font_size)
+    plt.ylabel('Seebeck Coefficient ($\mu$V/K)', fontsize=font_size)
+    # plt.legend(bbox_to_anchor=(1.05,1))
+    # plt.autoscale(enable=False, axis='y')
+    
+    # create a list of dV3 offsets to examine points on the blip
+    blip_markers = [-18, -9, -5, 5, 10, 15, 18]
+    for offs_mark in blip_markers:
+        offs_inputs = [0, 0, 0, offs_mark, 200]
+        S_result = seebeck_measurement(Thots_C, Tcolds_C, offs_inputs, TREF_K)
+        # plot single points for each marker
+        plt.plot(offs_mark, S_result, 'r*', 
+                 label="$\delta$ V3=%.2f $\mu$V \nS = %.3f $\mu$V/K" % 
+                 (offs_mark, S_result))
+    plt.legend(bbox_to_anchor=(1.05,1))
+    invoke_plot_params("Single_S_zoomed_in")
+    
+    for offs_mark in blip_markers:
+        offs_inputs = [0, 0, 0, offs_mark, 200]
+        seebeck_measurement(Thots_C, Tcolds_C, offs_inputs, TREF_K, plot=True)
+        
+    
 
 # things that need are changed when switching between type T and type R:
     # thermocouple conversion polynomials
