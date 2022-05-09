@@ -8,6 +8,7 @@ voltage offsets. Capable of simulating type T thermocouples with NIST SRM3451
 
 @author: benja
 """
+from __future__ import annotations
 import matplotlib.pyplot as plt
 import math
 import numpy as np
@@ -123,6 +124,7 @@ def voltage_to_temp(emf_measured, T_ref):
         elif final_emf > 1.923 and final_emf <= 13.228:  # range 2 (r2)
             for ind in range(len(tcc.c_r2_typeR)):
                 temp_out += tcc.c_r2_typeR[ind]*(final_emf**ind)
+        # 13.228, 11.361: overlapping ranges as per NIST polynomial definition
         elif final_emf > 11.361 and final_emf <= 19.739:  # range 3 (r3)
             for ind in range(len(tcc.c_r3_typeR)):
                 temp_out += tcc.c_r3_typeR[ind]*(final_emf**ind)
@@ -130,12 +132,12 @@ def voltage_to_temp(emf_measured, T_ref):
             for ind in range(len(tcc.c_r4_typeR)):
                 temp_out += tcc.c_r4_typeR[ind]*(final_emf**ind)
         else:
-                if final_emf < -0.226:
-                    raise ValueError(
-                        'voltage cannot be converted, less than -0.226mV')
-                else:
-                    raise ValueError(
-                        'voltage cannot be converted, more than 21.103mV')
+            if final_emf < -0.226:
+                raise ValueError(
+                    'voltage cannot be converted, less than -0.226mV')
+            else:
+                raise ValueError(
+                    'voltage cannot be converted, more than 21.103mV')
     else:
         raise ValueError('global constant THERMOCOUPLE_TYPE incorrect')
 
@@ -241,13 +243,26 @@ def seebeck_platinum(T): # units of T: K
     else:
         raise ValueError("can't get platinum Seebeck, temperature out of range")
 
-def seebeck_measurement(Thots_C, Tcolds_C, offs, tref_K, plot=False, print_vals=False):
+def seebeck_measurement(
+        Thots_C, Tcolds_C, offs, tref_K, 
+        plot=False, print_vals=False) -> tuple[float, bool]:
+    # indicate if polynomials are acting near the transition values
     tref_C = kelvin_to_celsius(tref_K)
     # offs: a list of 5 offsets, first term must be zero
         # index of offs corresponds to offset location e+
     # use conversion polynomials to get delta V values
     delta_V12_true = [temp_to_voltage(temp, tref_C) for temp in Thots_C] # mV
     delta_V34_true = [temp_to_voltage(temp, tref_C) for temp in Tcolds_C] # mV
+    
+    in_transition = False
+    if enable_check_transitions:  # transitions only supported for type R
+        transition_temps = [-50, 1064.18, 1664.5, 1768.1]
+        for trans_temp in transition_temps:
+            if Tcolds_C[0] < trans_temp and Tcolds_C[-1] > trans_temp:
+                in_transition = True
+            if Thots_C[0] < trans_temp and Thots_C[-1] > trans_temp:
+                in_transition = True
+            
     # add simulated voltage offsets, convert to mV
     delta_V12_meas = [volt + offs[1]/1000 + offs[2]/1000 for volt in delta_V12_true]
     delta_V34_meas = [volt + offs[3]/1000 + offs[4]/1000 for volt in delta_V34_true]
@@ -265,6 +280,15 @@ def seebeck_measurement(Thots_C, Tcolds_C, offs, tref_K, plot=False, print_vals=
     # use polynomials to return to temperatures
     offs_Thots_C = [voltage_to_temp(volt, tref_C) for volt in delta_V12_meas]
     offs_Tcolds_C = [voltage_to_temp(volt, tref_C) for volt in delta_V34_meas]
+    
+    if enable_check_transitions:
+        transition_volts = [-0.226, 1.923, 13.228, 19.739, 21.103]
+        for trans_volt in transition_volts:
+            if delta_V12_meas[0] < trans_volt and delta_V12_meas[-1] > trans_volt:
+                in_transition = True
+            if delta_V34_meas[0] < trans_volt and delta_V34_meas[-1] > trans_volt:
+                in_transition = True
+    
     # round_and_print("Offset hot temperatures (C): ", offs_Thots_C, 7)
     # round_and_print("Offset cold temperatures(C): ", offs_Tcolds_C, 7)
     # meas_dT is the same in both Kelvin and Celsius
@@ -308,7 +332,9 @@ def seebeck_measurement(Thots_C, Tcolds_C, offs, tref_K, plot=False, print_vals=
     if plot:
         plt.plot(meas_dT, meas_deltaV[use_top_13_wires], 'b.')
         plt.plot(meas_dT, trend_info['trendline'], 'b')
-        plt.title('Thermoelectric Votlage Produced by Seebeck Effect in Bi₂Te₃₊ₓ', 
+        # plt.title('Thermoelectric Votlage Produced by Seebeck Effect in Bi₂Te₃₊ₓ', 
+        #           pad=20)
+        plt.title('Thermoelectric Votlage Produced by Seebeck Effect', 
                   pad=20)
         plt.xlabel('Measured $\Delta$ Temperature (K)', fontsize=font_size)
         plt.ylabel('Measured Seebeck Voltage (uV)', fontsize=font_size)
@@ -327,7 +353,7 @@ def seebeck_measurement(Thots_C, Tcolds_C, offs, tref_K, plot=False, print_vals=
     # print("cold: ")
     # print([Tcolds_C[i]-offs_Tcolds_C[i] for i in range(len(offs_Tcolds_C))])
 
-    return S_sample
+    return (S_sample, in_transition)
 
 
 def invoke_plot_params(filename="unnamed_1200dpi"):
@@ -370,7 +396,7 @@ def plot_polynomials(temp_range, volt_range, Tref):
     
     plt.plot(temps_in, volts_out, 'k')
     plt.title("Temperature to Voltage Conversion Polynomial, " + 
-              "Tref=%d K, Thermocouple %s" % 
+              "Tref=%d K, Thermocouple %s" %
               (TREF_K, THERMOCOUPLE_TYPE), pad=20)
     # plt.subtitle('test')
     plt.xlabel('Temperature (C)', fontsize=font_size)
@@ -442,9 +468,12 @@ dT_true = [(pwr * dx)/(kappa * area) for pwr in powers] #units: K
 # reference temperature at the base of the sample
 # TREF_K = 80 # units: K
 # TREF_K = 293 # units: K
+TREF_K = 270 # units: K
 # TREF_K = 304 # units: K
 # TREF_K = 400 # units: K
-TREF_K = 500 # units: K
+# TREF_K = 500 # units: K
+# TREF_K = 520 # units: K
+
 # TREF_K = 670 # units: K  # max value until temp out of range for Cu seebeck
 TREF_C = kelvin_to_celsius(TREF_K) # reference temperature in celsius
 print("Reference temperature: %.2f K = %.2f C\n" % (TREF_K, TREF_C))
@@ -456,7 +485,8 @@ Tcolds_C = [kelvin_to_celsius(temp) for temp in Tcolds]
 # create offsets in uV
 # offset_list1 = [-200,-100,-50,-20,-10,-5,-2,-1,-0.5,-0.2,-0.1,-0.05,-0.02,-0.01, 
 #          0, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, 100, 200]
-main_offset_list = [-200, -100, -50, 0, 50, 100, 200]
+# main_offset_list = [-200, -100, -50, 0, 50, 100, 200]
+main_offset_list = [-400, -100, -50, 0, 50, 100, 400]
 offset_list1 = main_offset_list
 offset_list2 = main_offset_list 
 offset_list3 = main_offset_list
@@ -470,7 +500,7 @@ NUM_POINTS = 301  # choose the resolution of horizontal axis for plots
 # NUM_POINTS = 21
 THERMOCOUPLE_TYPES = ('type T', 'type R') 
 # never change THERMOCOUPLE_TYPE outside of this line
-THERMOCOUPLE_TYPE = THERMOCOUPLE_TYPES[1]
+THERMOCOUPLE_TYPE = THERMOCOUPLE_TYPES[0]
 SAVEFIG = False
 
 enable_seebeck_vs_offsets_plots = False  # enable plots as needed
@@ -480,7 +510,8 @@ enable_print_TC_volts = False
 enable_dDT_vs_trueDT = False
 enable_plot_polynomials = False
 enable_percent_error_plot = False
-enable_plot_blip = True
+enable_plot_blip = False
+enable_check_transitions = False # transitions only supported for type R
 
 if THERMOCOUPLE_TYPE == 'type T':  # keep track of material of each wire number
     material_string_13 = "Constantan"  # 1 and 3 are the negative leads
@@ -509,7 +540,11 @@ if enable_seebeck_vs_offsets_plots:
         offs_inputs[2] = offset_list2[ind]
         for offset1 in offset_list1:
             offs_inputs[1] = offset1
-            s_coeffs.append(seebeck_measurement(Thots_C, Tcolds_C, offs_inputs, TREF_K))
+            s_coeff, in_trans = seebeck_measurement(
+                Thots_C, Tcolds_C, offs_inputs, TREF_K)
+            s_coeffs.append(s_coeff)
+            if in_trans:
+                plt.plot(offset1, s_coeff, 'kx')
         
         plt.plot(offset_list1, s_coeffs, 
                  label=r'$\delta V2=%.2f uV$' % (round(offs_inputs[2], 2)))
@@ -538,7 +573,13 @@ if enable_seebeck_vs_offsets_plots:
         offs_inputs[4] = offset_list4[ind]
         for offset3 in offset_list3:
             offs_inputs[3] = offset3
-            s_coeffs.append(seebeck_measurement(Thots_C, Tcolds_C, offs_inputs, TREF_K))
+            # calculate the Seebeck coefficient and determine if it was 
+            # calculated over a transition boundary:
+            s_coeff, in_trans = seebeck_measurement(
+                Thots_C, Tcolds_C, offs_inputs, TREF_K)
+            s_coeffs.append(s_coeff)
+            if in_trans:
+                plt.plot(offset3, s_coeff, 'kx')
         
         plt.plot(offset_list3, s_coeffs, 
                  label=r'$\delta V4=%.2f uV$' % (round(offs_inputs[4], 2)))
@@ -563,7 +604,11 @@ if enable_seebeck_vs_offsets_plots:
         offs_inputs[3] = offset_list3[ind]
         for offset1 in offset_list1:
             offs_inputs[1] = offset1
-            s_coeffs.append(seebeck_measurement(Thots_C, Tcolds_C, offs_inputs, TREF_K))
+            s_coeff, in_trans = seebeck_measurement(
+                Thots_C, Tcolds_C, offs_inputs, TREF_K)
+            s_coeffs.append(s_coeff)
+            if in_trans:
+                plt.plot(offset1, s_coeff, 'kx')
     
         plt.plot(offset_list1, s_coeffs, 
                  label=r'$\delta V3=%.2f uV$' % (round(offs_inputs[3], 2)))
@@ -589,7 +634,11 @@ if enable_seebeck_vs_offsets_plots:
         offs_inputs[4] = offset_list4[ind]
         for offset2 in offset_list2:
             offs_inputs[2] = offset2
-            s_coeffs.append(seebeck_measurement(Thots_C, Tcolds_C, offs_inputs, TREF_K))
+            s_coeff, in_trans = seebeck_measurement(
+                Thots_C, Tcolds_C, offs_inputs, TREF_K)
+            s_coeffs.append(s_coeff)
+            if in_trans:
+                plt.plot(offset2, s_coeff, 'kx')
         
         plt.plot(offset_list2, s_coeffs, 
                  label=r'$\delta V4=%.2f uV$' % (round(offs_inputs[4], 2)))
@@ -689,7 +738,8 @@ if enable_measdV13_vs_measdV24: # only plot if needed
 # ------------------------------------------------------------------------
 if enable_print_TC_volts: #print two thermocouple voltage values, calculate a realistic case
     offs = [0, 50, 0, 50, 0]
-    seebeck_measurement(Thots_C, Tcolds_C, offs, TREF_K, plot=True, print_vals=True)
+    seebeck_measurement(
+        Thots_C, Tcolds_C, offs, TREF_K, plot=True, print_vals=True)[0]
 
 # ------------------------------------------------------------------------
 if enable_dDT_vs_trueDT: # plot temperature offset in Delta T values for increasing Delta T
@@ -738,7 +788,7 @@ if enable_percent_error_plot: # plot percent error vs T for type T thermocouple
             thots_C_var = [kelvin_to_celsius(temp) for temp in thots_var]
             tcolds_C_var = [kelvin_to_celsius(temp) for temp in tcolds_var]
             S_meas.append(seebeck_measurement(thots_C_var, tcolds_C_var, 
-                                              offs_var_ref[ind], tref))
+                                              offs_var_ref[ind], tref)[0])
             
         err_curve = [
             ((S_meas[ind] - S_true[ind]) * 100 / S_true[ind]) for 
@@ -768,7 +818,8 @@ if enable_plot_blip:  # plot zoomed in Seebeck vs. offset graph to show blip
     offs_inputs = [0, 0, 0, 0, 200]
     for offset3 in offset_list3:
         offs_inputs[3] = offset3
-        s_coeffs.append(seebeck_measurement(Thots_C, Tcolds_C, offs_inputs, TREF_K))
+        s_coeffs.append(
+            seebeck_measurement(Thots_C, Tcolds_C, offs_inputs, TREF_K)[0])
     
     plt.plot(offset_list3, s_coeffs, 'm')
         
@@ -779,10 +830,10 @@ if enable_plot_blip:  # plot zoomed in Seebeck vs. offset graph to show blip
     # plt.autoscale(enable=False, axis='y')
     
     # create a list of dV3 offsets to examine points on the blip
-    blip_markers = [-18, -9, -5, 5, 10, 15, 18]
+    blip_markers = [-18, -6, -3, 5, 10, 13.45, 18]
     for offs_mark in blip_markers:
         offs_inputs = [0, 0, 0, offs_mark, 200]
-        S_result = seebeck_measurement(Thots_C, Tcolds_C, offs_inputs, TREF_K)
+        S_result = seebeck_measurement(Thots_C, Tcolds_C, offs_inputs, TREF_K)[0]
         # plot single points for each marker
         plt.plot(offs_mark, S_result, 'r*', 
                  label="$\delta$ V3=%.2f $\mu$V \nS = %.3f $\mu$V/K" % 
@@ -792,7 +843,7 @@ if enable_plot_blip:  # plot zoomed in Seebeck vs. offset graph to show blip
     
     for offs_mark in blip_markers:
         offs_inputs = [0, 0, 0, offs_mark, 200]
-        seebeck_measurement(Thots_C, Tcolds_C, offs_inputs, TREF_K, plot=True)
+        seebeck_measurement(Thots_C, Tcolds_C, offs_inputs, TREF_K, plot=True)[0]
         
     
 
