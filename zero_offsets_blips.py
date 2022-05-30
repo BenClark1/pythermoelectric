@@ -11,6 +11,7 @@ voltage offsets. Capable of simulating type T thermocouples with NIST SRM3451
 from __future__ import annotations
 import matplotlib.pyplot as plt
 import math
+from decimal import Decimal
 import numpy as np
 
 import thermocouple_coefficients as tcc
@@ -155,29 +156,32 @@ def kelvin_to_celsius(kelv_in):
 
 def calculate_trendline(x_vals, y_vals):
 
-    if len(x_vals) != len(y_vals):
+    x_vals_prec = [Decimal(val) for val in x_vals]
+    y_vals_prec = [Decimal(val) for val in y_vals]
+
+    if len(x_vals_prec) != len(y_vals_prec):
         print("Trendline failed: lists must have equal length")
         return None
 
-    mean_x = sum(x_vals) / len(x_vals)
-    mean_y = sum(y_vals) / len(y_vals)
+    mean_x = Decimal(math.fsum(x_vals_prec)) / Decimal(len(x_vals_prec))
+    mean_y = Decimal(math.fsum(y_vals_prec)) / Decimal(len(y_vals_prec))
 
-    variations_x = [(xi-mean_x)**2 for xi in x_vals]
-    variations_y = [(yi-mean_y)**2 for yi in y_vals]
+    variations_x = [Decimal((xi-mean_x))**2 for xi in x_vals_prec]
+    variations_y = [Decimal((yi-mean_y))**2 for yi in y_vals_prec]
 
     # Standard Deviations for x and y
-    sdev_x = math.sqrt(sum(variations_x)/len(x_vals))
-    sdev_y = math.sqrt(sum(variations_y)/len(y_vals))
+    sdev_x = math.sqrt(Decimal(math.fsum(variations_x)) / Decimal(len(x_vals_prec)))
+    sdev_y = math.sqrt(Decimal(math.fsum(variations_y)) / Decimal(len(y_vals_prec)))
 
     correlation = 0
-    for ind in range(len(x_vals)):
-        correlation += (x_vals[ind] - mean_x)*(y_vals[ind] - mean_y)
-    correlation /= math.sqrt(sum(variations_x))
-    correlation /= math.sqrt(sum(variations_y))
+    for ind in range(len(x_vals_prec)):
+        correlation += Decimal(x_vals_prec[ind] - mean_x)*Decimal(y_vals_prec[ind] - mean_y)
+    correlation /= Decimal(math.sqrt(Decimal(math.fsum(variations_x))))
+    correlation /= Decimal(math.sqrt(Decimal(math.fsum(variations_y))))
 
-    trend_slope = correlation * (sdev_y/sdev_x)
+    trend_slope = Decimal(correlation) * (Decimal(sdev_y) / Decimal(sdev_x))
     trend_intercept = mean_y - (trend_slope * mean_x)
-    trend_y_vals = [trend_slope*xval + trend_intercept for xval in x_vals]
+    trend_y_vals = [trend_slope*xval + trend_intercept for xval in x_vals_prec]
 
     # print("\nTrendline slope: %f" % (trend_slope))
     # print("Trendline intercept: %f" % (trend_intercept))
@@ -243,7 +247,7 @@ def seebeck_platinum(T): # units of T: K
     else:
         raise ValueError("can't get platinum Seebeck, temperature out of range")
 
-def seebeck_measurement(
+def seebeck_measurement_old(
         Thots_C, Tcolds_C, offs, tref_K,
         plot=False, print_vals=False) -> tuple[float, bool]:
     # the tuple[float, bool] is just documentation of the return type
@@ -286,7 +290,7 @@ def seebeck_measurement(
         # # choose between deltaV13 or deltaV24 for Seebeck voltage
         # meas_deltaV = [meas_deltaV24, meas_deltaV13] # uV
 
-        use_top_13_wires = False
+        # use_top_13_wires = False
 
     elif THERMOCOUPLE_TYPE == 'type R':
         true_deltaV13 = [-1*(seebeck_SRM3452_SiGe(tref_K) - S_Pt)*delta_T for
@@ -317,9 +321,9 @@ def seebeck_measurement(
     #     invoke_plot_params("Seebeck_Effect_for_Slope")
 
     if THERMOCOUPLE_TYPE == 'type T':
-        S_sample = -1*trend_info['slope'] + [S_Cu, S_Con][1] # S_Con used for 13 wires
+        S_sample = -1*trend_info['slope'] + Decimal([S_Cu, S_Con][1]) # S_Con used for 13 wires
     elif THERMOCOUPLE_TYPE == 'type R':
-        S_sample = -1*trend_info['slope'] + [None, S_Pt][1]
+        S_sample = -1*trend_info['slope'] + Decimal([None, S_Pt][1])
     # print("\nFinal Seebeck Coefficient of the Sample: ")
     # print(round(S_sample, 9))
 
@@ -328,6 +332,40 @@ def seebeck_measurement(
     # print([Thots_C[i]-offs_Thots_C[i] for i in range(len(offs_Thots_C))])
     # print("cold: ")
     # print([Tcolds_C[i]-offs_Tcolds_C[i] for i in range(len(offs_Tcolds_C))])
+
+    return (S_sample, None)
+
+def seebeck_measurement(
+        Thots_C, Tcolds_C, offs, tref_K,
+        plot=False, print_vals=False) -> tuple[float, bool]:
+
+    # temp true dT for testing:
+    true_dT = [Thots_C[ind] - Tcolds_C[ind] for
+              ind in range(len(Thots_C))]
+
+    S_Cu = seebeck_Cu(tref_K) # units: uV/K
+    S_Con = seebeck_constantan(tref_K) # units: uV/K
+    S_Pt = seebeck_platinum(tref_K) # units: uV/K
+    if THERMOCOUPLE_TYPE == 'type T':  # true_deltaV13 is different for type T and R
+        true_deltaV13 = [-1*(seebeck_SRM3451(tref_K) - S_Con)*delta_T for
+                         delta_T in dT_true]
+
+    elif THERMOCOUPLE_TYPE == 'type R':
+        true_deltaV13 = [-1*(seebeck_SRM3452_SiGe(tref_K) - S_Pt)*delta_T for
+                         delta_T in dT_true]
+
+    else:
+        raise ValueError('global constant THERMOCOUPLE_TYPE is incorrect')
+
+    # get a dictionary with slope, intercept, and trendline y values
+    trend_info = calculate_trendline(true_dT, true_deltaV13)
+
+
+    if THERMOCOUPLE_TYPE == 'type T':
+        S_sample = -1*trend_info['slope'] + Decimal([S_Cu, S_Con][1]) # S_Con used for 13 wires
+    elif THERMOCOUPLE_TYPE == 'type R':
+        S_sample = -1*trend_info['slope'] + Decimal([None, S_Pt][1])
+
 
     return (S_sample, None)
 
@@ -499,7 +537,7 @@ NUM_POINTS = 301  # choose the resolution of horizontal axis for plots
 # NUM_POINTS = 21
 THERMOCOUPLE_TYPES = ('type T', 'type R')  # do not change this line
 # never change THERMOCOUPLE_TYPE outside of this line
-THERMOCOUPLE_TYPE = THERMOCOUPLE_TYPES[0]  # DO NOT CHANGE IN THIS VERSION
+THERMOCOUPLE_TYPE = THERMOCOUPLE_TYPES[0]
 # SAVEFIG will save any figures as png files when invoke_plot_params() is called
 SAVEFIG = False
 
@@ -840,7 +878,7 @@ if enable_percent_error_plot: # plot percent error vs T for type T thermocouple
             #                                   offs_var_ref[ind], tref)[0])
 
         err_curve = [
-            ((S_meas[ind] - S_true[ind]) * 100 / S_true[ind]) for
+            ((S_meas[ind] - Decimal(S_true[ind])) * 100 / Decimal(S_true[ind])) for
             ind in range(len(S_true))
             ]
         # positive percent error corresponds to "overshot" S value
