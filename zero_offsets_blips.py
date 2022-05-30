@@ -248,56 +248,28 @@ def seebeck_measurement(
         plot=False, print_vals=False) -> tuple[float, bool]:
     # the tuple[float, bool] is just documentation of the return type
     # indicate if polynomials are acting near the transition values
-    tref_C = kelvin_to_celsius(tref_K)
+    # tref_C = kelvin_to_celsius(tref_K)
     # offs: a list of 5 offsets, first term must be zero
         # index of offs corresponds to offset location e+
     # use conversion polynomials to get delta V values
-    delta_V12_true = [temp_to_voltage(temp, tref_C) for temp in Thots_C] # mV
-    delta_V34_true = [temp_to_voltage(temp, tref_C) for temp in Tcolds_C] # mV
+    # delta_V12_true = [temp_to_voltage(temp, tref_C) for temp in Thots_C] # mV
+    # delta_V34_true = [temp_to_voltage(temp, tref_C) for temp in Tcolds_C] # mV
 
-    in_transition = False
-    if enable_check_transitions:  # transitions only supported for type R
-        transition_temps = [-50, 1064.18, 1664.5, 1768.1]
-        # transition_temps = [-50, 127, 1664.5, 1768.1]  # temporary test
-        for trans_temp in transition_temps:
-            if Tcolds_C[0] < trans_temp and Tcolds_C[-1] > trans_temp:
-                print("found temperature transition")
-                in_transition = True
-            if Thots_C[0] < trans_temp and Thots_C[-1] > trans_temp:
-                in_transition = True
-                print("found temperature transition")
 
     # add simulated voltage offsets, convert to mV
-    delta_V12_meas = [volt + offs[1]/1000 + offs[2]/1000 for volt in delta_V12_true]
-    delta_V34_meas = [volt + offs[3]/1000 + offs[4]/1000 for volt in delta_V34_true]
-    if print_vals: # print two thermocouple voltages to see realistic example
-        print("Printing voltages (mv)   tref=%.1fK   thermocouple: %s...\n" %
-              (TREF_K, THERMOCOUPLE_TYPE))
-        print("true hot voltage low power: ", round(delta_V12_true[1], 5))
-        # print("offset hot voltage low power: ", round(delta_V12_meas[1], 5))
-        print("true cold voltage low power: ", round(delta_V34_true[1], 5))
-        # print("offset cold voltage low power: ", round(delta_V34_meas[1], 5))
-        print("true hot voltage high power: ", round(delta_V12_true[9], 5))
-        # print("offset hot voltage high power: ", round(delta_V12_meas[8], 5))
-        print("true cold voltage high power: ", round(delta_V34_true[9], 5))
-        # print("offset cold voltage high power: ", round(delta_V34_meas[8], 5))
-    # use polynomials to return to temperatures
-    offs_Thots_C = [voltage_to_temp(volt, tref_C) for volt in delta_V12_meas]
-    offs_Tcolds_C = [voltage_to_temp(volt, tref_C) for volt in delta_V34_meas]
+    # delta_V12_meas = [volt + offs[1]/1000 + offs[2]/1000 for volt in delta_V12_true]
+    # delta_V34_meas = [volt + offs[3]/1000 + offs[4]/1000 for volt in delta_V34_true]
 
-    if enable_check_transitions:
-        transition_volts = [-0.226, 1.923, 13.228, 19.739, 21.103]
-        for trans_volt in transition_volts:
-            if delta_V12_meas[0] < trans_volt and delta_V12_meas[-1] > trans_volt:
-                print("found voltage transition")
-                in_transition = True
-            if delta_V34_meas[0] < trans_volt and delta_V34_meas[-1] > trans_volt:
-                in_transition = True
-                print("found voltage transition")
+    # offs_Thots_C = [voltage_to_temp(volt, tref_C) for volt in delta_V12_meas]
+    # offs_Tcolds_C = [voltage_to_temp(volt, tref_C) for volt in delta_V34_meas]
+
 
     # meas_dT is the same in both Kelvin and Celsius
-    meas_dT = [offs_Thots_C[ind]-offs_Tcolds_C[ind] for
-              ind in range(len(offs_Thots_C))]
+    # meas_dT = [offs_Thots_C[ind]-offs_Tcolds_C[ind] for
+    #           ind in range(len(offs_Thots_C))]
+    # temp true dT for testing:
+    true_dT = [Thots_C[ind] - Tcolds_C[ind] for
+              ind in range(len(Thots_C))]
 
     S_Cu = seebeck_Cu(tref_K) # units: uV/K
     S_Con = seebeck_constantan(tref_K) # units: uV/K
@@ -305,14 +277,14 @@ def seebeck_measurement(
     if THERMOCOUPLE_TYPE == 'type T':  # true_deltaV13 is different for type T and R
         true_deltaV13 = [-1*(seebeck_SRM3451(tref_K) - S_Con)*delta_T for
                          delta_T in dT_true]
-        true_deltaV24 = [-1*(seebeck_SRM3451(tref_K) - S_Cu)*delta_T for
-                         delta_T in dT_true] #dT_true is a global variable
+        # true_deltaV24 = [-1*(seebeck_SRM3451(tref_K) - S_Cu)*delta_T for
+        #                  delta_T in dT_true] #dT_true is a global variable
         # note: true_deltaV is in uV
         # introduce voltage offset for true_deltaV lists
-        meas_deltaV13 = [volt + offs[1] + offs[3] for volt in true_deltaV13] # uV
-        meas_deltaV24 = [volt + offs[2] + offs[4] for volt in true_deltaV24] # uV
-        # choose between deltaV13 or deltaV24 for Seebeck voltage
-        meas_deltaV = [meas_deltaV24, meas_deltaV13] # uV
+        # meas_deltaV13 = [volt + offs[1] + offs[3] for volt in true_deltaV13] # uV
+        # meas_deltaV24 = [volt + offs[2] + offs[4] for volt in true_deltaV24] # uV
+        # # choose between deltaV13 or deltaV24 for Seebeck voltage
+        # meas_deltaV = [meas_deltaV24, meas_deltaV13] # uV
 
         use_top_13_wires = False
 
@@ -321,33 +293,33 @@ def seebeck_measurement(
                          delta_T in dT_true]
         # note: true_deltaV is in uV
         # introduce voltage offset for true_deltaV lists
-        meas_deltaV13 = [volt + offs[1] + offs[3] for volt in true_deltaV13] # uV
-        # meas_deltaV24 = [volt + offs[2] + offs[4] for volt in true_deltaV24] # uV
-        meas_deltaV = [None, meas_deltaV13] # uV
-        # choose between deltaV13 or deltaV24 for Seebeck voltage
-        # NOTE: always use 13 for type R because we don't have S for Pt-13%Rh
-        use_top_13_wires = True
+        # meas_deltaV13 = [volt + offs[1] + offs[3] for volt in true_deltaV13] # uV
+        # # meas_deltaV24 = [volt + offs[2] + offs[4] for volt in true_deltaV24] # uV
+        # meas_deltaV = [None, meas_deltaV13] # uV
+        # # choose between deltaV13 or deltaV24 for Seebeck voltage
+        # # NOTE: always use 13 for type R because we don't have S for Pt-13%Rh
+        # use_top_13_wires = True
     else:
         raise ValueError('global constant THERMOCOUPLE_TYPE is incorrect')
 
     # get a dictionary with slope, intercept, and trendline y values
-    trend_info = calculate_trendline(meas_dT, meas_deltaV[use_top_13_wires])
+    trend_info = calculate_trendline(true_dT, true_deltaV13)
 
-    if plot:
-        plt.plot(meas_dT, meas_deltaV[use_top_13_wires], 'b.')
-        plt.plot(meas_dT, trend_info['trendline'], 'b')
-        # plt.title('Thermoelectric Votlage Produced by Seebeck Effect in Bi₂Te₃₊ₓ',
-        #           pad=20)
-        plt.title('Thermoelectric Votlage Produced by Seebeck Effect',
-                  pad=20)
-        plt.xlabel('Measured $\Delta$ Temperature (K)', fontsize=font_size)
-        plt.ylabel('Measured Seebeck Voltage (uV)', fontsize=font_size)
-        invoke_plot_params("Seebeck_Effect_for_Slope")
+    # if plot:
+    #     plt.plot(meas_dT, meas_deltaV[use_top_13_wires], 'b.')
+    #     plt.plot(meas_dT, trend_info['trendline'], 'b')
+    #     # plt.title('Thermoelectric Votlage Produced by Seebeck Effect in Bi₂Te₃₊ₓ',
+    #     #           pad=20)
+    #     plt.title('Thermoelectric Votlage Produced by Seebeck Effect',
+    #               pad=20)
+    #     plt.xlabel('Measured $\Delta$ Temperature (K)', fontsize=font_size)
+    #     plt.ylabel('Measured Seebeck Voltage (uV)', fontsize=font_size)
+    #     invoke_plot_params("Seebeck_Effect_for_Slope")
 
     if THERMOCOUPLE_TYPE == 'type T':
-        S_sample = -1*trend_info['slope'] + [S_Cu, S_Con][use_top_13_wires]
+        S_sample = -1*trend_info['slope'] + [S_Cu, S_Con][1] # S_Con used for 13 wires
     elif THERMOCOUPLE_TYPE == 'type R':
-        S_sample = -1*trend_info['slope'] + [None, S_Pt][use_top_13_wires]
+        S_sample = -1*trend_info['slope'] + [None, S_Pt][1]
     # print("\nFinal Seebeck Coefficient of the Sample: ")
     # print(round(S_sample, 9))
 
@@ -357,7 +329,7 @@ def seebeck_measurement(
     # print("cold: ")
     # print([Tcolds_C[i]-offs_Tcolds_C[i] for i in range(len(offs_Tcolds_C))])
 
-    return (S_sample, in_transition)
+    return (S_sample, None)
 
 
 def invoke_plot_params(filename="unnamed_1200dpi"):
@@ -503,10 +475,10 @@ def plot_polynomials(temp_range, volt_range, plot_T_to_V=False):
 # reference temperature at the base of the sample
 # TREF_K = 80 # units: K
 # TREF_K = 293 # units: K
-# TREF_K = 270 # units: K
+TREF_K = 270 # units: K
 # TREF_K = 304 # units: K
 # TREF_K = 400 # units: K
-TREF_K = 500 # units: K
+# TREF_K = 500 # units: K
 # TREF_K = 520 # units: K
 # TREF_K = 670 # units: K  # max value until temp out of range for Cu seebeck
 TREF_C = kelvin_to_celsius(TREF_K) # reference temperature in celsius
@@ -527,7 +499,7 @@ NUM_POINTS = 301  # choose the resolution of horizontal axis for plots
 # NUM_POINTS = 21
 THERMOCOUPLE_TYPES = ('type T', 'type R')  # do not change this line
 # never change THERMOCOUPLE_TYPE outside of this line
-THERMOCOUPLE_TYPE = THERMOCOUPLE_TYPES[1]  # change the index here when needed
+THERMOCOUPLE_TYPE = THERMOCOUPLE_TYPES[0]  # DO NOT CHANGE IN THIS VERSION
 # SAVEFIG will save any figures as png files when invoke_plot_params() is called
 SAVEFIG = False
 
@@ -537,8 +509,8 @@ enable_measdV13_vs_measdV24 = False
 enable_print_TC_volts = False
 enable_dDT_vs_trueDT = False
 enable_plot_polynomials = False
-enable_percent_error_plot = False
-enable_plot_blip = True
+enable_percent_error_plot = True
+enable_plot_blip = False
 enable_check_transitions = False # transitions only supported for type R
 enable_plot_dashed_DV_vs_DT = False
 enable_examine_blip_region = False
@@ -550,9 +522,9 @@ print("Thermocouple type: ", THERMOCOUPLE_TYPE, '\n')
 # end control panel ------------------------------------------------------
 
 # dQ/dT_true = P = kA(dT_true/dx) = power delivered to the sample
-# powers = [0, 1e-3, 2e-3, 3e-3, 4e-3, 5e-3, \
-#           6e-3, 7e-3, 8e-3, 9e-3, 10e-3] # units: W eventually test 100 values here
-powers = np.linspace(0, 10e-3, 101) # units: W
+powers = [0, 1e-3, 2e-3, 3e-3, 4e-3, 5e-3, \
+          6e-3, 7e-3, 8e-3, 9e-3, 10e-3] # units: W eventually test 100 values here
+# powers = np.linspace(0, 10e-3, 101) # units: W
 kappa = 2.0 # units: W/(m*K)  thermal conductivity kappa for Bi2Te3
 area = 0.002**2 # units: m^2  2mm x 2mm cross sectional area
 # location of hot and cold thermocoulpe probe points
@@ -835,8 +807,9 @@ if enable_percent_error_plot: # plot percent error vs T for type T thermocouple
         raise ValueError('global constant THERMOCOUPLE_TYPE is incorrect')
 
     # offs_var_ref contains 3 offset scenarios
-    offs_var_ref = [[0,0,0,0,0], [0,50,50,0,0], [0,-50,-50,0,0], [0,-140,-100,0,0]]
+    # offs_var_ref = [[0,0,0,0,0], [0,50,50,0,0], [0,-50,-50,0,0], [0,-140,-100,0,0]]
     # offs_var_ref = [[0,0,0,0,0], [0,50,50,0,0], [0,-50,-50,0,0]]
+    offs_var_ref = [[0,0,0,0,0]]
     for ind in range(len(offs_var_ref)):
         S_meas = []
         for tref in Tref_var: # inefficient: nested for loops
@@ -877,7 +850,7 @@ if enable_percent_error_plot: # plot percent error vs T for type T thermocouple
                  (offs_var_ref[ind][1], offs_var_ref[ind][2]))
         # '$\delta$V1 ($\mu$V)'
 
-    plt.ylim([-10, 10])
+    # plt.ylim([-10, 10])
     plt.title("Temperature Dependence of Seebeck Measurement Error\n" +
               "Thermocouple: %s" % THERMOCOUPLE_TYPE, pad=20)
     plt.xlabel('Reference Temperature (K)', fontsize=font_size)
