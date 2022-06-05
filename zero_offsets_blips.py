@@ -12,6 +12,7 @@ from __future__ import annotations
 import matplotlib.pyplot as plt
 import math
 from decimal import Decimal
+from statistics import mean
 import numpy as np
 
 import thermocouple_coefficients as tcc
@@ -154,10 +155,12 @@ def round_and_print(message, list_in, digits):
 def kelvin_to_celsius(kelv_in):
     return kelv_in - 273.15
 
-def calculate_trendline(x_vals, y_vals):
+def calculate_trendline(x_vals, y_vals):  # original statistical method
 
     x_vals_prec = [Decimal(val) for val in x_vals]
     y_vals_prec = [Decimal(val) for val in y_vals]
+
+    # print("original trendline function called")
 
     if len(x_vals_prec) != len(y_vals_prec):
         print("Trendline failed: lists must have equal length")
@@ -190,6 +193,28 @@ def calculate_trendline(x_vals, y_vals):
     return {'slope':trend_slope,
             'intercept':trend_intercept,
             'trendline':trend_y_vals}
+
+# def calculate_trendline(xs, ys):  # function found online
+#     xy_multiply = [xs[ind] * ys[ind] for ind in range(len(xs))]
+#     xx_multiply = [xs[ind] ** 2 for ind in range(len(xs))]
+#     m = (((mean(xs)*mean(ys)) - mean(xy_multiply)) /
+#          ((mean(xs)*mean(xs)) - mean(xx_multiply)))
+
+#     b = mean(ys) - m*mean(xs)
+#     trend_y_vals = [m * x_val + b for x_val in xs]
+
+#     m = Decimal(m)
+#     b = Decimal(b)
+
+#     return {'slope': m, 'intercept': b, 'trendline': trend_y_vals}
+
+# def calculate_trendline(xs, ys):  # non-standard averaging slopes method
+#     # this assumes the trendline always intercepts at 0
+#     m = Decimal(mean([ys[ind] /xs[ind] for ind in range(1, len(xs))]))
+#     b = 0
+#     trend_y_vals = [m * Decimal(x_val + b) for x_val in xs]
+
+#     return {'slope': m, 'intercept': b, 'trendline': trend_y_vals}
 
 def seebeck_Cu(T):
 # T must be in kelvin: Seebeck coeff [uV/K]
@@ -247,7 +272,8 @@ def seebeck_platinum(T): # units of T: K
     else:
         raise ValueError("can't get platinum Seebeck, temperature out of range")
 
-def seebeck_measurement_old(
+def seebeck_measurement_no_offsets(
+# def seebeck_measurement(
         Thots_C, Tcolds_C, offs, tref_K,
         plot=False, print_vals=False) -> tuple[float, bool]:
     # the tuple[float, bool] is just documentation of the return type
@@ -308,6 +334,9 @@ def seebeck_measurement_old(
 
     # get a dictionary with slope, intercept, and trendline y values
     trend_info = calculate_trendline(true_dT, true_deltaV13)
+    # trend_info = {}
+    # trend_info['slope'] = Decimal(mean([true_deltaV13[ind] /
+    #                               true_dT[ind] for ind in range(1, len(true_dT))]))
 
     # if plot:
     #     plt.plot(meas_dT, meas_deltaV[use_top_13_wires], 'b.')
@@ -324,6 +353,7 @@ def seebeck_measurement_old(
         S_sample = -1*trend_info['slope'] + Decimal([S_Cu, S_Con][1]) # S_Con used for 13 wires
     elif THERMOCOUPLE_TYPE == 'type R':
         S_sample = -1*trend_info['slope'] + Decimal([None, S_Pt][1])
+
     # print("\nFinal Seebeck Coefficient of the Sample: ")
     # print(round(S_sample, 9))
 
@@ -336,12 +366,27 @@ def seebeck_measurement_old(
     return (S_sample, None)
 
 def seebeck_measurement(
+# def seebeck_measurement_with_offsets(
         Thots_C, Tcolds_C, offs, tref_K,
         plot=False, print_vals=False) -> tuple[float, bool]:
 
-    # temp true dT for testing:
-    true_dT = [Thots_C[ind] - Tcolds_C[ind] for
-              ind in range(len(Thots_C))]
+    tref_C = kelvin_to_celsius(tref_K)
+    delta_V12_true = [temp_to_voltage(temp, tref_C) for temp in Thots_C] # mV
+    delta_V34_true = [temp_to_voltage(temp, tref_C) for temp in Tcolds_C] # mV
+
+    # add simulated voltage offsets, convert to mV
+    delta_V12_meas = [volt + offs[1]/1000 + offs[2]/1000 for volt in delta_V12_true]
+    delta_V34_meas = [volt + offs[3]/1000 + offs[4]/1000 for volt in delta_V34_true]
+
+    offs_Thots_C = [voltage_to_temp(volt, tref_C) for volt in delta_V12_meas]
+    offs_Tcolds_C = [voltage_to_temp(volt, tref_C) for volt in delta_V34_meas]
+
+    # meas_dT is the same in both Kelvin and Celsius
+    meas_dT = [offs_Thots_C[ind]-offs_Tcolds_C[ind] for
+              ind in range(len(offs_Thots_C))]
+    # # temp true dT for testing:
+    # true_dT = [Thots_C[ind] - Tcolds_C[ind] for
+    #           ind in range(len(Thots_C))]
 
     S_Cu = seebeck_Cu(tref_K) # units: uV/K
     S_Con = seebeck_constantan(tref_K) # units: uV/K
@@ -349,16 +394,28 @@ def seebeck_measurement(
     if THERMOCOUPLE_TYPE == 'type T':  # true_deltaV13 is different for type T and R
         true_deltaV13 = [-1*(seebeck_SRM3451(tref_K) - S_Con)*delta_T for
                          delta_T in dT_true]
+        meas_deltaV13 = [volt + offs[1] + offs[3] for volt in true_deltaV13] # uV
+        # meas_deltaV24 = [volt + offs[2] + offs[4] for volt in true_deltaV24] # uV
+        meas_deltaV = [None, meas_deltaV13] # uV
+        use_top_13_wires = True
 
     elif THERMOCOUPLE_TYPE == 'type R':
         true_deltaV13 = [-1*(seebeck_SRM3452_SiGe(tref_K) - S_Pt)*delta_T for
                          delta_T in dT_true]
+        meas_deltaV13 = [volt + offs[1] + offs[3] for volt in true_deltaV13] # uV
+        meas_deltaV = [None, meas_deltaV13] # uV
+        use_top_13_wires = True
 
     else:
         raise ValueError('global constant THERMOCOUPLE_TYPE is incorrect')
 
     # get a dictionary with slope, intercept, and trendline y values
-    trend_info = calculate_trendline(true_dT, true_deltaV13)
+    trend_info = calculate_trendline(meas_dT, meas_deltaV[use_top_13_wires])
+    # trend_info = {}
+    # # print(true_deltaV13[0])
+    # # print(dT_true[0])
+    # trend_info['slope'] = Decimal(mean([meas_deltaV[use_top_13_wires][ind] /
+    #                               meas_dT[ind] for ind in range(1, len(meas_dT))]))
 
 
     if THERMOCOUPLE_TYPE == 'type T':
@@ -1091,4 +1148,32 @@ if enable_examine_blip_region:
     # seebeck coefficient subtracted out in seebeck measurement function
     # SRM material used (Bismuth Telluride or Silicon 80 Germanium 20)
     # temperature / voltage ranges used to plot polynomials
+
+
+
+
+
+# attempted to put this version of calculate_trendline into the main code
+# uses averaging individual slopes method (invalid)
+# def calculate_trendline(x_vals, y_vals):
+
+#     if len(x_vals) != len(y_vals):
+#         print("Trendline failed: lists must have equal length")
+#         return None
+
+#     # omit the first number in each list to avoid dividing 0 / 0
+#     trend_slope = Decimal(mean([y_vals[ind] / x_vals[ind]
+#                                 for ind in range(1, len(x_vals))]))
+
+#     trend_intercept = Decimal(mean(y_vals)) - (trend_slope * Decimal(mean(x_vals)))
+#     trend_y_vals = [trend_slope*Decimal(xval) + trend_intercept for xval in x_vals]
+
+#     # print("\nTrendline slope: %f" % (trend_slope))
+#     # print("Trendline intercept: %f" % (trend_intercept))
+#     # print("Correlation coefficient: %f" % (correlation))
+
+#     return {'slope':trend_slope,
+#             'intercept':trend_intercept,
+#             'trendline':trend_y_vals}
+
 

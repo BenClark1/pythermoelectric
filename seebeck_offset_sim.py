@@ -11,6 +11,8 @@ voltage offsets. Capable of simulating type T thermocouples with NIST SRM3451
 from __future__ import annotations
 import matplotlib.pyplot as plt
 import math
+from decimal import Decimal
+from statistics import mean
 import numpy as np
 
 import thermocouple_coefficients as tcc
@@ -186,6 +188,7 @@ def calculate_trendline(x_vals, y_vals):
     return {'slope':trend_slope,
             'intercept':trend_intercept,
             'trendline':trend_y_vals}
+
 
 def seebeck_Cu(T):
 # T must be in kelvin: Seebeck coeff [uV/K]
@@ -531,14 +534,14 @@ THERMOCOUPLE_TYPE = THERMOCOUPLE_TYPES[1]  # change the index here when needed
 # SAVEFIG will save any figures as png files when invoke_plot_params() is called
 SAVEFIG = False
 
-enable_seebeck_vs_offsets_plots = False  # enable plots as needed
+enable_seebeck_vs_offsets_plots = True  # enable plots as needed
 enable_seebeck_volts_vs_temp_diff = False
 enable_measdV13_vs_measdV24 = False
 enable_print_TC_volts = False
 enable_dDT_vs_trueDT = False
 enable_plot_polynomials = False
-enable_percent_error_plot = False
-enable_plot_blip = True
+enable_percent_error_plot = True
+enable_plot_blip = False
 enable_check_transitions = False # transitions only supported for type R
 enable_plot_dashed_DV_vs_DT = False
 enable_examine_blip_region = False
@@ -550,9 +553,9 @@ print("Thermocouple type: ", THERMOCOUPLE_TYPE, '\n')
 # end control panel ------------------------------------------------------
 
 # dQ/dT_true = P = kA(dT_true/dx) = power delivered to the sample
-# powers = [0, 1e-3, 2e-3, 3e-3, 4e-3, 5e-3, \
-#           6e-3, 7e-3, 8e-3, 9e-3, 10e-3] # units: W eventually test 100 values here
-powers = np.linspace(0, 10e-3, 101) # units: W
+powers = [0, 1e-3, 2e-3, 3e-3, 4e-3, 5e-3, \
+          6e-3, 7e-3, 8e-3, 9e-3, 10e-3] # units: W eventually test 100 values here
+# powers = np.linspace(0, 10e-3, 101) # units: W
 kappa = 2.0 # units: W/(m*K)  thermal conductivity kappa for Bi2Te3
 area = 0.002**2 # units: m^2  2mm x 2mm cross sectional area
 # location of hot and cold thermocoulpe probe points
@@ -835,8 +838,8 @@ if enable_percent_error_plot: # plot percent error vs T for type T thermocouple
         raise ValueError('global constant THERMOCOUPLE_TYPE is incorrect')
 
     # offs_var_ref contains 3 offset scenarios
-    offs_var_ref = [[0,0,0,0,0], [0,50,50,0,0], [0,-50,-50,0,0], [0,-140,-100,0,0]]
-    # offs_var_ref = [[0,0,0,0,0], [0,50,50,0,0], [0,-50,-50,0,0]]
+    # offs_var_ref = [[0,0,0,0,0], [0,50,50,0,0], [0,-50,-50,0,0], [0,-140,-100,0,0]]
+    offs_var_ref = [[0,0,0,0,0], [0,50,50,0,0], [0,-50,-50,0,0]]
     for ind in range(len(offs_var_ref)):
         S_meas = []
         for tref in Tref_var: # inefficient: nested for loops
