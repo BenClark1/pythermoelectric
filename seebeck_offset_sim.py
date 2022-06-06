@@ -189,6 +189,16 @@ def calculate_trendline(x_vals, y_vals):
             'intercept':trend_intercept,
             'trendline':trend_y_vals}
 
+# built-in trendline calculation with numpy does not get rid of blips
+# def calculate_trendline(x_vals, y_vals):
+#     # make lists into numpy arrays to use numpy built-in trendline calculator
+#     np_x = np.array(x_vals)
+#     np_y = np.array(y_vals)
+#     slope, intercept = np.polyfit(np_x, np_y, 1)
+
+#     return {'slope': slope, 'intercept': intercept,
+#             'trendline': [slope*xval + intercept for xval in x_vals]}
+
 
 def seebeck_Cu(T):
 # T must be in kelvin: Seebeck coeff [uV/K]
@@ -254,6 +264,9 @@ def seebeck_measurement(
     tref_C = kelvin_to_celsius(tref_K)
     # offs: a list of 5 offsets, first term must be zero
         # index of offs corresponds to offset location e+
+    # get a local variable for true temperature differences
+    true_dT_L = [Thots_C[ind]-Tcolds_C[ind] for
+              ind in range(len(Tcolds_C))]
     # use conversion polynomials to get delta V values
     delta_V12_true = [temp_to_voltage(temp, tref_C) for temp in Thots_C] # mV
     delta_V34_true = [temp_to_voltage(temp, tref_C) for temp in Tcolds_C] # mV
@@ -307,9 +320,9 @@ def seebeck_measurement(
     S_Pt = seebeck_platinum(tref_K) # units: uV/K
     if THERMOCOUPLE_TYPE == 'type T':  # true_deltaV13 is different for type T and R
         true_deltaV13 = [-1*(seebeck_SRM3451(tref_K) - S_Con)*delta_T for
-                         delta_T in dT_true]
+                         delta_T in true_dT_L]
         true_deltaV24 = [-1*(seebeck_SRM3451(tref_K) - S_Cu)*delta_T for
-                         delta_T in dT_true] #dT_true is a global variable
+                         delta_T in true_dT_L]
         # note: true_deltaV is in uV
         # introduce voltage offset for true_deltaV lists
         meas_deltaV13 = [volt + offs[1] + offs[3] for volt in true_deltaV13] # uV
@@ -321,7 +334,7 @@ def seebeck_measurement(
 
     elif THERMOCOUPLE_TYPE == 'type R':
         true_deltaV13 = [-1*(seebeck_SRM3452_SiGe(tref_K) - S_Pt)*delta_T for
-                         delta_T in dT_true]
+                         delta_T in true_dT_L]
         # note: true_deltaV is in uV
         # introduce voltage offset for true_deltaV lists
         meas_deltaV13 = [volt + offs[1] + offs[3] for volt in true_deltaV13] # uV
@@ -333,8 +346,9 @@ def seebeck_measurement(
     else:
         raise ValueError('global constant THERMOCOUPLE_TYPE is incorrect')
 
-    # get a dictionary with slope, intercept, and trendline y values
+    # # get a dictionary with slope, intercept, and trendline y values
     trend_info = calculate_trendline(meas_dT, meas_deltaV[use_top_13_wires])
+
 
     if plot:
         plt.plot(meas_dT, meas_deltaV[use_top_13_wires], 'b.')
