@@ -11,16 +11,19 @@ voltage offsets. Capable of simulating type T thermocouples with NIST SRM3451
 from __future__ import annotations
 import matplotlib.pyplot as plt
 import math
-# from decimal import Decimal
-# from statistics import mean
 import numpy as np
 
 import thermocouple_coefficients as tcc
 
 
 # functions ----------------------------------------
-def temp_to_voltage(temp_in, T_ref):
-    # convert temperature (C) to EMF (mV) type T thermocouple
+# syntax for all functions:
+# def <function name>(<arg>: <arg type>) -> <return type>:
+
+def temp_to_voltage(temp_in: float, T_ref: float) -> float:
+    """Thermocouple polynomial: convert temperature (C) to voltage (mV)
+    runs differently depending on global constant THERMOCOUPLE_TYPE
+    polynomial coefficients are imported from thermocouple_coefficients.py"""
     if THERMOCOUPLE_TYPE == 'type T':
         # type T thermocouple: only for -270C <= temp_in <= 400C
         emf_pre = 0 # preliminary voltage before subtracting out emf_ref
@@ -80,7 +83,9 @@ def temp_to_voltage(temp_in, T_ref):
     return emf_pre - emf_ref # returns emf in millivolts (mV)
 
 def voltage_to_temp(emf_measured, T_ref):
-    # convert EMF (mV) to temperature (C) for type T thermocouple
+    """Thermocouple polynomial: convert EMF (mV) to temperature (C)
+    runs differently depending on global constant THERMOCOUPLE_TYPE
+    polynomial coefficients are imported from thermocouple_coefficients.py"""
     if THERMOCOUPLE_TYPE == 'type T':
     # type T thermocouple: only for -5.603mV <= emf_measured <= 20.872mV
         temp_out = 0
@@ -146,17 +151,15 @@ def voltage_to_temp(emf_measured, T_ref):
     return temp_out # returns temperature in Celsius (C)
 
 
-def round_and_print(message, list_in, digits):
-    print(message)
-    list_to_print = [round(item, digits) for item in list_in]
-    print(list_to_print)
-    print('')
-
-def kelvin_to_celsius(kelv_in):
+def kelvin_to_celsius(kelv_in: float) -> float:
+    """convert kelvin to celsius"""
     return kelv_in - 273.15
 
-def calculate_trendline(x_vals, y_vals):
-
+def calculate_trendline(x_vals: list[float],
+                        y_vals: list[float]) -> dict['str': float]:
+    """get slope, intercept, and values for a line of best fit
+    returns: dictionary containing the above
+    uses standard deviation and correlation coefficient"""
     if len(x_vals) != len(y_vals):
         print("Trendline failed: lists must have equal length")
         return None
@@ -181,15 +184,11 @@ def calculate_trendline(x_vals, y_vals):
     trend_intercept = mean_y - (trend_slope * mean_x)
     trend_y_vals = [trend_slope*xval + trend_intercept for xval in x_vals]
 
-    # print("\nTrendline slope: %f" % (trend_slope))
-    # print("Trendline intercept: %f" % (trend_intercept))
-    # print("Correlation coefficient: %f" % (correlation))
-
     return {'slope':trend_slope,
             'intercept':trend_intercept,
             'trendline':trend_y_vals}
 
-# built-in trendline calculation with numpy does not get rid of blips
+# built-in trendline calculation below with numpy does not get rid of blips
 # def calculate_trendline(x_vals, y_vals):
 #     # make lists into numpy arrays to use numpy built-in trendline calculator
 #     np_x = np.array(x_vals)
@@ -200,8 +199,9 @@ def calculate_trendline(x_vals, y_vals):
 #             'trendline': [slope*xval + intercept for xval in x_vals]}
 
 
-def seebeck_Cu(T):
-# T must be in kelvin: Seebeck coeff [uV/K]
+def seebeck_Cu(T: float) -> float:
+    """input: temperature T must be in KELVIN
+    returns: Seebeck coefficient of copper [uV/K] based on NIST formula"""
     if 73.15 < T and T < 673.15:
         exp_term = math.exp(-1*T/93)
         rational_fraction = 0.442/(1+(T/172.4)**3)
@@ -209,10 +209,12 @@ def seebeck_Cu(T):
     else:
         raise ValueError("can't get Copper Seebeck, temperature out of range")
 
-def seebeck_SRM3451(T):
-    # Standard Reference Material (SRM) 3451 = Bi2Te3+x
-    # NIST provided Seebeck coefficient for SRM3451
-    # T must be in KELVIN: Seebeck coeff [uV/K]
+def seebeck_SRM3451(T: float) -> float:
+    """Standard Reference Material (SRM) 3451 = Bi2Te3+x
+    NIST provided Seebeck coefficient for SRM3451
+    temperature T must be in KELVIN: Seebeck coeff [uV/K]
+    this simulation uses this standard reference material (SRM) strictly for
+    type T thermocouples"""
     A = 295 # entral temp (room temp) K
     S_A = -230.03 # µV/K
     a = -2.2040e-1 # coefficients
@@ -225,8 +227,10 @@ def seebeck_SRM3451(T):
     term4 = d*T**4*(1-(A/T))**4
     return S_A + term1 + term2 + term3 + term4
 
-def seebeck_SRM3452_SiGe(T):  # Si80Ge20 Seebeck coefficient
-    # T must be in KELVIN: Seebeck coeff [uV/K]
+def seebeck_SRM3452_SiGe(T: float) -> float:
+    """returns: Seebeck coefficient for Si80Ge20 based on NIST formula
+    T must be in KELVIN [uV/K]
+    this simulation uses this SRM strictly for type R thermocouples"""
     A = 295
     S_A = 1.16246764e2  # uV / K
     a = 2.343158e-1
@@ -235,9 +239,11 @@ def seebeck_SRM3452_SiGe(T):  # Si80Ge20 Seebeck coefficient
     term3 = b * (T - A)**2
     return S_A + term2 + term3
 
-def seebeck_constantan(T): # units of T: K
-    # get the Seebeck coefficent of Constantan
-    # first get Seebeck coefficient for Copper/Constantan T-type thermocouple
+def seebeck_constantan(T: float) -> float:
+    """T must be in KELVIN [uV/K]
+    get the Seebeck coefficent of Constantan
+    also requires Seebeck coefficient for Copper/Constantan type T thermocouple
+    """
     if 73.15 < T and T < 673.15: # MUST BE FOR 73.15 K < T < 673.15 K
         S_Cu_Con = 4.37184 + 0.1676*T - (1.84371e-4)*T**2 \
             + (1.2244e-7)*T**3 - (4.47618e-11)*T**4
@@ -248,8 +254,10 @@ def seebeck_constantan(T): # units of T: K
         raise ValueError("can't get Constantan Seebeck, temperature out of range")
 
 
-def seebeck_platinum(T): # units of T: K
-    # get the Seebeck coefficient of Platinum
+def seebeck_platinum(T: float) -> float:
+    """T must be in KELVIN [uV/K]
+    get the Seebeck coefficent of Platinum
+    """
     if 70 < T and T < 1500:
         bracket_term = (math.exp(-1*T/88) - 0.0786 + 0.43 / (1 + (T/84.3)**4))
         return 0.186 * T * bracket_term - 2.57
@@ -257,10 +265,25 @@ def seebeck_platinum(T): # units of T: K
         raise ValueError("can't get platinum Seebeck, temperature out of range")
 
 def seebeck_measurement(
-        Thots_C, Tcolds_C, offs, tref_K,
-        plot=False, print_vals=False) -> tuple[float, bool]:
-    # the tuple[float, bool] is just documentation of the return type
-    # indicate if polynomials are acting near the transition values
+        Thots_C: list[float], Tcolds_C: list[float],
+        offs: list[float], tref_K: float,
+        plot: bool = False, print_vals: bool = False) -> tuple[float, bool]:
+    """The primary function for simulating a single Seebeck Coefficient
+    measurement including the effect of static voltage offsets
+
+    Input arguments:
+    Thots_C: true temperatures (Celsius) on the hot side, unaffected by offsets
+    Tcolds_C: true temperatures on the cold side, unaffected by offsets
+    offs: list of offsets, ex: [None, 0, 50, -50, 0] in uV
+        ^first item is unused to get indicies to match up with wire numbers 1-4
+    plot: option to create DV vs DT plot
+    print_vals: option to print out voltages at a few power values
+
+    Returns:
+    tuple containing the resulting Seebeck coefficient in uV/K and a boolean
+    indicating whether or not the calculation overlapped with a transition
+    boundary between voltage/temperature ranges for thermocouple polynomials.
+    """
     tref_C = kelvin_to_celsius(tref_K)
     # offs: a list of 5 offsets, first term must be zero
         # index of offs corresponds to offset location e+
@@ -357,39 +380,39 @@ def seebeck_measurement(
         #           pad=20)
         plt.title('Thermoelectric Votlage Produced by Seebeck Effect',
                   pad=20)
-        plt.xlabel('Measured $\Delta$ Temperature (K)', fontsize=font_size)
-        plt.ylabel('Measured Seebeck Voltage (uV)', fontsize=font_size)
+        plt.xlabel('Measured $\Delta$ Temperature (K)', fontsize=FONT_SIZE)
+        plt.ylabel('Measured Seebeck Voltage (uV)', fontsize=FONT_SIZE)
         invoke_plot_params("Seebeck_Effect_for_Slope")
 
     if THERMOCOUPLE_TYPE == 'type T':
         S_sample = -1*trend_info['slope'] + [S_Cu, S_Con][use_top_13_wires]
     elif THERMOCOUPLE_TYPE == 'type R':
         S_sample = -1*trend_info['slope'] + [None, S_Pt][use_top_13_wires]
-    # print("\nFinal Seebeck Coefficient of the Sample: ")
-    # print(round(S_sample, 9))
-
-    # print("\nDifferences between original and new temps (C): ")
-    # print("hot: ")
-    # print([Thots_C[i]-offs_Thots_C[i] for i in range(len(offs_Thots_C))])
-    # print("cold: ")
-    # print([Tcolds_C[i]-offs_Tcolds_C[i] for i in range(len(offs_Tcolds_C))])
 
     return (S_sample, in_transition)
 
 
-def invoke_plot_params(filename="unnamed_1200dpi"):
+def invoke_plot_params(filename: str = "unnamed_1200dpi") -> None:
+    """format all plots and call show()
+    if enabled save figures to png files in a designated folder, 1200dpi
+    dpi is dots per square inch
+    IF THE FOLDER FOR SAVEFIG DOESN'T EXIST, CREATE IT"""
     plt.tick_params(axis='both',which='major', direction = 'in',
-                    top = 1, right = 1, length=6,width=1,labelsize=font_size)
+                    top = 1, right = 1, length=6,width=1,labelsize=FONT_SIZE)
     plt.tick_params(axis='both',which='minor', direction = 'in',
-                    top = 1, right = 1, length=2,width=1,labelsize=font_size)
+                    top = 1, right = 1, length=2,width=1,labelsize=FONT_SIZE)
     plt.grid()
-    if SAVEFIG:
+    if SAVEFIG:  # SAVEFIG is a global variable
         # plt.savefig("plot_img_1200dpi/"+filename, dpi=1200, bbox_inches='tight')
-        plt.savefig("post_APS_plots/"+filename, dpi=1200, bbox_inches='tight')
+        plt.savefig("Seebeck_Sim_plots/"+filename, dpi=1200, bbox_inches='tight')
     plt.show()
 
 
-def plot_DT_offset(offs, Tref_K): # DT_offset can be plotted vs. DT_true
+def plot_DT_offset(offs: list[float], Tref_K: float) -> list[float]:
+    """plot DT_offset vs. DT_true
+    returns: list of values for error in delta T based on true temperatures
+    as calculated from the beginning of the main script
+    NOTE: this function accesses Thots_C and Tcolds_C as global variables"""
     Tref_C_loc = kelvin_to_celsius(Tref_K)
     # use conversion polynomials to get delta V values
     delta_V12_true = [temp_to_voltage(temp, Tref_C_loc) for temp in Thots_C] # mV
@@ -410,8 +433,13 @@ def plot_DT_offset(offs, Tref_K): # DT_offset can be plotted vs. DT_true
     return offs_Delta_T
 
 
-def plot_polynomials(temp_range, volt_range, plot_T_to_V=False):
-    # temp_range units: C   volt_range units: mV
+def plot_polynomials(temp_range: list[float], volt_range: list[float],
+                     plot_T_to_V: bool = False) -> None:
+    """ plots voltage to temperature thermocouple polynomial by default
+    if plot_T_to_V: will plot temperature to voltage polynomial as well
+    temp_range: list of length 2 to give min and max temperatures to plot
+    volt_range: list of length 2 to give min and max voltages to plot
+    temp_range units: C   volt_range units: mV"""
     if plot_T_to_V:
         temps_in = np.linspace(temp_range[0], temp_range[1], NUM_POINTS) # units: C
         volts_out = [temp_to_voltage(temp, TREF_C) for temp in temps_in]
@@ -421,8 +449,8 @@ def plot_polynomials(temp_range, volt_range, plot_T_to_V=False):
                   "Tref=%d K, Thermocouple %s" %
                   (TREF_K, THERMOCOUPLE_TYPE), pad=20)
         # plt.subtitle('test')
-        plt.xlabel('Temperature (C)', fontsize=font_size)
-        plt.ylabel('Voltage (mV)', fontsize=font_size)
+        plt.xlabel('Temperature (C)', fontsize=FONT_SIZE)
+        plt.ylabel('Voltage (mV)', fontsize=FONT_SIZE)
         invoke_plot_params("temp_to_voltage")
 
     volts_in = np.linspace(volt_range[0], volt_range[1], NUM_POINTS) #units: mV
@@ -482,8 +510,8 @@ def plot_polynomials(temp_range, volt_range, plot_T_to_V=False):
     plt.title("Voltage to Temperature Conversion Polynomial, " +
               "Tref=%d K, Thermocouple %s" %
               (TREF_K, THERMOCOUPLE_TYPE), pad=20)
-    plt.xlabel('Voltage (mV)', fontsize=font_size)
-    plt.ylabel('Temperature (C)', fontsize=font_size)
+    plt.xlabel('Voltage (mV)', fontsize=FONT_SIZE)
+    plt.ylabel('Temperature (C)', fontsize=FONT_SIZE)
     invoke_plot_params("voltage_to_temp_LP")
 
     plt.plot(volts_in, temps_out, 'k')  # ploting polynomial curve
@@ -507,8 +535,8 @@ def plot_polynomials(temp_range, volt_range, plot_T_to_V=False):
     plt.title("Voltage to Temperature Conversion Polynomial, " +
               "Tref=%d K, Thermocouple %s" %
               (TREF_K, THERMOCOUPLE_TYPE), pad=20)
-    plt.xlabel('Voltage (mV)', fontsize=font_size)
-    plt.ylabel('Temperature (C)', fontsize=font_size)
+    plt.xlabel('Voltage (mV)', fontsize=FONT_SIZE)
+    plt.ylabel('Temperature (C)', fontsize=FONT_SIZE)
     # plt.legend(bbox_to_anchor=(1.05,1))
     invoke_plot_params("voltage_to_temp")
 
@@ -529,15 +557,14 @@ TREF_K = 500 # units: K
 TREF_C = kelvin_to_celsius(TREF_K) # reference temperature in celsius
 
 # create offsets in uV
-main_offset_list = [-200, -100, -50, 0, 50, 100, 200]
-# main_offset_list = [-400, -100, -50, 0, 50, 100, 400]
-offset_list1 = main_offset_list
-offset_list2 = main_offset_list
-offset_list3 = main_offset_list
-offset_list4 = main_offset_list
-ind_zero = len(offset_list1)//2  # get index of zero offset (center of list)
+MAIN_OFFSET_LIST = [-200, -100, -50, 0, 50, 100, 200]
+# MAIN_OFFSET_LIST = [-400, -100, -50, 0, 50, 100, 400]
+offset_list1 = MAIN_OFFSET_LIST
+offset_list2 = MAIN_OFFSET_LIST
+offset_list3 = MAIN_OFFSET_LIST
+offset_list4 = MAIN_OFFSET_LIST
 
-font_size = 16
+FONT_SIZE = 16
 # all caps - constants should not be changed in runtime
 PERCENT_ERROR = 5  # %  5% is typical measurement uncertainty for seebeck coef
 NUM_POINTS = 301  # choose the resolution of horizontal axis for plots
@@ -546,9 +573,9 @@ THERMOCOUPLE_TYPES = ('type T', 'type R')  # do not change this line
 # never change THERMOCOUPLE_TYPE outside of this line
 THERMOCOUPLE_TYPE = THERMOCOUPLE_TYPES[1]  # change the index here when needed
 # SAVEFIG will save any figures as png files when invoke_plot_params() is called
-SAVEFIG = False
+SAVEFIG = True
 
-enable_seebeck_vs_offsets_plots = True  # enable plots as needed
+enable_seebeck_vs_offsets_plots = False  # enable plots as needed
 enable_seebeck_volts_vs_temp_diff = False
 enable_measdV13_vs_measdV24 = False
 enable_print_TC_volts = False
@@ -603,12 +630,16 @@ plus_percent = [S*(1+(PERCENT_ERROR/100)) for S in true_seebeck]
 
 offs_inputs = [0, 0, 0, 0, 0]
 
-round_and_print("Applying the following powers (W) to the heater: ", powers, 7)
+print("Applying the following powers (W) to the heater: ")
+round_powers = [round(item, 7) for item in powers]
+print(round_powers)
+print('')
 
 # ------------------------------------------------------------------------
 if enable_seebeck_vs_offsets_plots:
     # hold offsets 3 and 4 constant while varying 1 and 2 ------------ FIGURE 1
-    offset_list1 = np.linspace(main_offset_list[0],main_offset_list[-1],NUM_POINTS)
+    offset_list1 = np.linspace(MAIN_OFFSET_LIST[0],
+                               MAIN_OFFSET_LIST[-1], NUM_POINTS)
     for ind in range(len(offset_list2)):
         s_coeffs = []
         offs_inputs[2] = offset_list2[ind]
@@ -632,15 +663,15 @@ if enable_seebeck_vs_offsets_plots:
                      alpha=.3, label="$\u00B1$%d"%(PERCENT_ERROR)+
                      "% Typical Experimental\nUncertainty")
     plt.title("Offsets in Hot Thermocouple Only, Tref=%d K"%(TREF_K), pad=20)
-    plt.xlabel('$\delta$V1 ($\mu$V)', fontsize=font_size)
-    plt.ylabel('Seebeck Coefficient ($\mu$V/K)', fontsize=font_size)
+    plt.xlabel('$\delta$V1 ($\mu$V)', fontsize=FONT_SIZE)
+    plt.ylabel('Seebeck Coefficient ($\mu$V/K)', fontsize=FONT_SIZE)
     plt.legend(bbox_to_anchor=(1.05,1))
     # plt.autoscale(enable=False, axis='y')
     invoke_plot_params("S_vs_dV1_dV2")
 
     # hold offsets 1 and 2 constant while varying 3 and 4------------ FIGURE 2
     offset_list3 = offset_list1 # offset_list3 becomes a linspace for plot
-    offset_list1 = main_offset_list # reset offset_list1
+    offset_list1 = MAIN_OFFSET_LIST # reset offset_list1
     offs_inputs = [0, 0, 0, 0, 0]
     for ind in range(len(offset_list4)):
         s_coeffs = []
@@ -664,14 +695,14 @@ if enable_seebeck_vs_offsets_plots:
                      alpha=.3, label="$\u00B1$%d"%(PERCENT_ERROR)+
                      "% Typical Experimental\nUncertainty")
     plt.title("Offsets in Cold Thermocouple Only, Tref=%d K"%(TREF_K), pad=20)
-    plt.xlabel('$\delta$V3 ($\mu$V)', fontsize=font_size)
-    plt.ylabel('Seebeck Coefficient ($\mu$V/K)', fontsize=font_size)
+    plt.xlabel('$\delta$V3 ($\mu$V)', fontsize=FONT_SIZE)
+    plt.ylabel('Seebeck Coefficient ($\mu$V/K)', fontsize=FONT_SIZE)
     plt.legend(bbox_to_anchor=(1.05,1))
     invoke_plot_params("S_vs_dV3_dV4")
 
     # hold offsets 2 and 4 constant while varying 1 and 3------------ FIGURE 3
     offset_list1 = offset_list3 # offset_list1 becomes a linspace for plot
-    offset_list3 = main_offset_list # reset offset_list3
+    offset_list3 = MAIN_OFFSET_LIST # reset offset_list3
     offs_inputs = [0, 0, 0, 0, 0]
     for ind in range(len(offset_list3)):
         s_coeffs = []
@@ -694,14 +725,14 @@ if enable_seebeck_vs_offsets_plots:
                      "% Typical Experimental\nUncertainty")
     plt.title("Offsets in %s Wires Only, Tref=%d K" %
               (material_string_13, TREF_K), pad=20)
-    plt.xlabel('$\delta$V1 ($\mu$V)', fontsize=font_size)
-    plt.ylabel('Seebeck Coefficient ($\mu$V/K)', fontsize=font_size)
+    plt.xlabel('$\delta$V1 ($\mu$V)', fontsize=FONT_SIZE)
+    plt.ylabel('Seebeck Coefficient ($\mu$V/K)', fontsize=FONT_SIZE)
     plt.legend(bbox_to_anchor=(1.05,1))
     invoke_plot_params("S_vs_dV1_dV3")
 
     # hold offsets 1 and 3 constant while varying 2 and 4------------ FIGURE 4
     offset_list2 = offset_list1 # offset_list2 becomes a linspace for plot
-    offset_list1 = main_offset_list # reset offset_list1
+    offset_list1 = MAIN_OFFSET_LIST # reset offset_list1
     offs_inputs = [0, 0, 0, 0, 0]
     for ind in range(len(offset_list4)):
         s_coeffs = []
@@ -724,8 +755,8 @@ if enable_seebeck_vs_offsets_plots:
                      "% Typical Experimental\nUncertainty")
     plt.title("Offsets in %s Wires Only, Tref=%d K" %
               (material_string_24, TREF_K), pad=20)
-    plt.xlabel('$\delta$V2 ($\mu$V)', fontsize=font_size)
-    plt.ylabel('Seebeck Coefficient ($\mu$V/K)', fontsize=font_size)
+    plt.xlabel('$\delta$V2 ($\mu$V)', fontsize=FONT_SIZE)
+    plt.ylabel('Seebeck Coefficient ($\mu$V/K)', fontsize=FONT_SIZE)
     plt.legend(bbox_to_anchor=(1.05,1))
     invoke_plot_params("S_vs_dV2_dV4")
 
@@ -771,8 +802,8 @@ if enable_seebeck_volts_vs_temp_diff: # only plot if needed
     plt.plot(dT_true, true_deltaV24, label="True Values")
     plt.plot(meas_dT, meas_deltaV[use_top_13_wires], label="Measured Values")
     plt.title('Voltage vs. Temperature, Measured and True', pad=20)
-    plt.xlabel(r'True/Measured $\Delta$ Temperature (K)', fontsize=font_size)
-    plt.ylabel('Seebeck Voltgae (uV)', fontsize=font_size)
+    plt.xlabel(r'True/Measured $\Delta$ Temperature (K)', fontsize=FONT_SIZE)
+    plt.ylabel('Seebeck Voltgae (uV)', fontsize=FONT_SIZE)
     plt.legend(bbox_to_anchor=(1.05,1))
     invoke_plot_params("true_meas_dV_vs_dT")
 
@@ -804,8 +835,8 @@ if enable_measdV13_vs_measdV24: # only plot if needed
                  + "\nintercept = %.2f"%(dV_trend['intercept']))
     plt.title("Constantan Terminal Voltage vs. Copper Terminal Voltage"+
               ", Tref=%d K"%(TREF_K), pad=20)
-    plt.xlabel('$\Delta V_{24}$ Measured ($\mu$V)', fontsize=font_size)
-    plt.ylabel('$\Delta V_{13}$ Measured ($\mu$V)', fontsize=font_size)
+    plt.xlabel('$\Delta V_{24}$ Measured ($\mu$V)', fontsize=FONT_SIZE)
+    plt.ylabel('$\Delta V_{13}$ Measured ($\mu$V)', fontsize=FONT_SIZE)
     plt.legend(bbox_to_anchor=(1.05,1))
     invoke_plot_params("V13_vs_V24_meas")
 
@@ -821,8 +852,8 @@ if enable_dDT_vs_trueDT: # plot temperature offset in Delta T values for increas
     offs_Delta_T = plot_DT_offset(offs_inputs, TREF_K)
     plt.plot(dT_true, offs_Delta_T, 'k')
     plt.title('Offset in $\Delta T$ vs. True $\Delta T$', pad=20)
-    plt.xlabel(r'True $\Delta T$ (K)', fontsize=font_size)
-    plt.ylabel(r'$\delta (\Delta T)$ (K)', fontsize=font_size)
+    plt.xlabel(r'True $\Delta T$ (K)', fontsize=FONT_SIZE)
+    plt.ylabel(r'$\delta (\Delta T)$ (K)', fontsize=FONT_SIZE)
     invoke_plot_params("offs_DT_vs_DTtrue")
 
 # ------------------------------------------------------------------------
@@ -897,8 +928,8 @@ if enable_percent_error_plot: # plot percent error vs T for type T thermocouple
     plt.ylim([-10, 10])
     plt.title("Temperature Dependence of Seebeck Measurement Error\n" +
               "Thermocouple: %s" % THERMOCOUPLE_TYPE, pad=20)
-    plt.xlabel('Reference Temperature (K)', fontsize=font_size)
-    plt.ylabel('Percent Error (%)', fontsize=font_size)
+    plt.xlabel('Reference Temperature (K)', fontsize=FONT_SIZE)
+    plt.ylabel('Percent Error (%)', fontsize=FONT_SIZE)
     # plt.legend(bbox_to_anchor=(1.45, 1))
     plt.legend()
     invoke_plot_params("percent_error_vs_temp")
@@ -918,8 +949,8 @@ if enable_plot_blip:  # plot zoomed in Seebeck vs. offset graph to show blip
     plt.plot(offset_list3, s_coeffs, 'm')
 
     plt.title("$\delta V4=200 uV$, Tref=%d K" % (TREF_K), pad=20)
-    plt.xlabel('$\delta$V3 ($\mu$V)', fontsize=font_size)
-    plt.ylabel('Seebeck Coefficient ($\mu$V/K)', fontsize=font_size)
+    plt.xlabel('$\delta$V3 ($\mu$V)', fontsize=FONT_SIZE)
+    plt.ylabel('Seebeck Coefficient ($\mu$V/K)', fontsize=FONT_SIZE)
     # plt.legend(bbox_to_anchor=(1.05,1))
     # plt.autoscale(enable=False, axis='y')
 
@@ -1010,8 +1041,8 @@ if enable_plot_dashed_DV_vs_DT:
 
     plt.title('Thermoelectric Votlage Produced by Seebeck Effect',
               pad=20)
-    plt.xlabel('$\Delta$ Temperature (K)', fontsize=font_size)
-    plt.ylabel('Seebeck Voltage (uV)', fontsize=font_size)
+    plt.xlabel('$\Delta$ Temperature (K)', fontsize=FONT_SIZE)
+    plt.ylabel('Seebeck Voltage (uV)', fontsize=FONT_SIZE)
     plt.legend(bbox_to_anchor=(1.05,1))
     invoke_plot_params("Seebeck_True_Measured_for_Slope")
 
@@ -1063,32 +1094,32 @@ if enable_examine_blip_region:
 
     plt.plot(dv4_varying, dV34_varying, 'k')
     plt.title('Measured dV34 (mV)', pad=20)
-    plt.xlabel('$\delta$V3 ($\mu$V)', fontsize=font_size)
-    plt.ylabel('Measured dV34 (mV)', fontsize=font_size)
+    plt.xlabel('$\delta$V3 ($\mu$V)', fontsize=FONT_SIZE)
+    plt.ylabel('Measured dV34 (mV)', fontsize=FONT_SIZE)
     invoke_plot_params("meas_dV34")
 
     plt.plot(dv4_varying, offs_Tcolds_varying, 'k')
     plt.title('Tcolds Including Offsets (C)', pad=20)
-    plt.xlabel('$\delta$V3 ($\mu$V)', fontsize=font_size)
-    plt.ylabel('Tcolds Including Offsets (C)', fontsize=font_size)
+    plt.xlabel('$\delta$V3 ($\mu$V)', fontsize=FONT_SIZE)
+    plt.ylabel('Tcolds Including Offsets (C)', fontsize=FONT_SIZE)
     invoke_plot_params("offs_Tcolds_varying")
 
     plt.plot(dv4_varying, meas_dT_varying, 'k')
     plt.title('Measured Temperature Difference (C)', pad=20)
-    plt.xlabel('$\delta$V3 ($\mu$V)', fontsize=font_size)
-    plt.ylabel('Measured Temperature Difference (C)', fontsize=font_size)
+    plt.xlabel('$\delta$V3 ($\mu$V)', fontsize=FONT_SIZE)
+    plt.ylabel('Measured Temperature Difference (C)', fontsize=FONT_SIZE)
     invoke_plot_params("meas_dT_varying")
 
     plt.plot(dv4_varying, meas_dV13_varying, 'k')
     plt.title('Measured Seebeck Voltage 13 (uV)', pad=20)
-    plt.xlabel('$\delta$V3 ($\mu$V)', fontsize=font_size)
-    plt.ylabel('Measured Seebeck Voltage 13 (uV)', fontsize=font_size)
+    plt.xlabel('$\delta$V3 ($\mu$V)', fontsize=FONT_SIZE)
+    plt.ylabel('Measured Seebeck Voltage 13 (uV)', fontsize=FONT_SIZE)
     invoke_plot_params("meas_dV13_varying")
 
     plt.plot(dv4_varying, DV_DT_slope_varying, 'k')
     plt.title('DV vs DT slope (uV/K)', pad=20)
-    plt.xlabel('$\delta$V3 ($\mu$V)', fontsize=font_size)
-    plt.ylabel('DV vs DT slope (uV/K)', fontsize=font_size)
+    plt.xlabel('$\delta$V3 ($\mu$V)', fontsize=FONT_SIZE)
+    plt.ylabel('DV vs DT slope (uV/K)', fontsize=FONT_SIZE)
     invoke_plot_params("DV_DT_slope_varying")
 
 
