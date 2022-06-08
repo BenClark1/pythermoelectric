@@ -11,8 +11,8 @@ voltage offsets. Capable of simulating type T thermocouples with NIST SRM3451
 from __future__ import annotations
 import matplotlib.pyplot as plt
 import math
-from decimal import Decimal
-from statistics import mean
+# from decimal import Decimal
+# from statistics import mean
 import numpy as np
 
 import thermocouple_coefficients as tcc
